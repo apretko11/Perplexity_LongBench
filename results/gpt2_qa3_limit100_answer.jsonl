@@ -1,0 +1,4 @@
+{"task": "narrativeqa", "mode": "answer", "examples": 100, "tokens_scored": 599, "avg_nll": 4.852336423424926, "perplexity": 128.03919441624498}
+{"task": "qasper", "mode": "answer", "examples": 100, "tokens_scored": 1850, "avg_nll": 3.776110503737991, "perplexity": 43.645950404257086}
+{"task": "multifieldqa_en", "mode": "answer", "examples": 100, "tokens_scored": 1449, "avg_nll": 3.1119077760158036, "perplexity": 22.463859559383867}
+{"task": "OVERALL", "mode": "answer", "examples": 300, "tokens_scored": 3898, "avg_nll": 3.694589101332405, "perplexity": 40.22903913283861}

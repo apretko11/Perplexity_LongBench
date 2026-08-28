@@ -1,0 +1,27 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Environments
+venv/
+venv_lb/
+.env
+.venv/
+
+# Caches
+.cache/
+.huggingface/
+*.cache
+
+# OS/editor
+.DS_Store
+.vscode/
+.idea/
+
+# Large local artifacts
+*.pt
+*.pth
+*.bin
+*.safetensors
