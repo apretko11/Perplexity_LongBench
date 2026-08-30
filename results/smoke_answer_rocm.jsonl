@@ -1,0 +1,2 @@
+{"task": "narrativeqa", "mode": "answer", "examples": 1, "tokens_scored": 13, "avg_nll": 10.822542630709135, "perplexity": 50138.40853135963}
+{"task": "OVERALL", "mode": "answer", "examples": 1, "tokens_scored": 13, "avg_nll": 10.822542630709135, "perplexity": 50138.40853135963}
