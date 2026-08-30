@@ -31,6 +31,25 @@ DEFAULT_LONGBENCH_TASKS = [
     "repobench-p",
 ]
 
+LONGBENCH_PROMPTS = {
+    "narrativeqa": "You are given a story, which can be either a novel or a movie script, and a question. Answer the question asconcisely as you can, using a single phrase if possible. Do not provide any explanation.\n\nStory: {context}\n\nNow, answer the question based on the story asconcisely as you can, using a single phrase if possible. Do not provide any explanation.\n\nQuestion: {input}\n\nAnswer:",
+    "qasper": "You are given a scientific article and a question. Answer the question as concisely as you can, using a single phrase or sentence if possible. If the question cannot be answered based on the information in the article, write \"unanswerable\". If the question is a yes/no question, answer \"yes\", \"no\", or \"unanswerable\". Do not provide any explanation.\n\nArticle: {context}\n\n Answer the question based on the above article as concisely as you can, using a single phrase or sentence if possible. If the question cannot be answered based on the information in the article, write \"unanswerable\". If the question is a yes/no question, answer \"yes\", \"no\", or \"unanswerable\". Do not provide any explanation.\n\nQuestion: {input}\n\nAnswer:",
+    "multifieldqa_en": "Read the following text and answer briefly.\n\n{context}\n\nNow, answer the following question based on the above text, only give me the answer and do not output any other words.\n\nQuestion: {input}\nAnswer:",
+    "hotpotqa": "Answer the question based on the given passages. Only give me the answer and do not output any other words.\n\nThe following are given passages.\n{context}\n\nAnswer the question based on the given passages. Only give me the answer and do not output any other words.\n\nQuestion: {input}\nAnswer:",
+    "2wikimqa": "Answer the question based on the given passages. Only give me the answer and do not output any other words.\n\nThe following are given passages.\n{context}\n\nAnswer the question based on the given passages. Only give me the answer and do not output any other words.\n\nQuestion: {input}\nAnswer:",
+    "musique": "Answer the question based on the given passages. Only give me the answer and do not output any other words.\n\nThe following are given passages.\n{context}\n\nAnswer the question based on the given passages. Only give me the answer and do not output any other words.\n\nQuestion: {input}\nAnswer:",
+    "gov_report": "You are given a report by a government agency. Write a one-page summary of the report.\n\nReport:\n{context}\n\nNow, write a one-page summary of the report.\n\nSummary:",
+    "qmsum": "You are given a meeting transcript and a query containing a question or instruction. Answer the query in one or more sentences.\n\nTranscript:\n{context}\n\nNow, answer the query based on the above meeting transcript in one or more sentences.\n\nQuery: {input}\nAnswer:",
+    "multi_news": "You are given several news passages. Write a one-page summary of all news. \n\nNews:\n{context}\n\nNow, write a one-page summary of all the news.\n\nSummary:",
+    "trec": "Please determine the type of the question below. Here are some examples of questions.\n\n{context}\n{input}",
+    "triviaqa": "Answer the question based on the given passage. Only give me the answer and do not output any other words. The following are some examples.\n\n{context}\n\n{input}",
+    "samsum": "Summarize the dialogue into a few short sentences. The following are some examples.\n\n{context}\n\n{input}",
+    "passage_count": "There are some paragraphs below sourced from Wikipedia. Some of them may be duplicates. Please carefully read these paragraphs and determine how many unique paragraphs there are after removing duplicates. In other words, how many non-repeating paragraphs are there in total?\n\n{context}\n\nPlease enter the final count of unique paragraphs after removing duplicates. The output format should only contain the number, such as 1, 2, 3, and so on.\n\nThe final answer is: ",
+    "passage_retrieval_en": "Here are 30 paragraphs from Wikipedia, along with an abstract. Please determine which paragraph the abstract is from.\n\n{context}\n\nThe following is an abstract.\n\n{input}\n\nPlease enter the number of the paragraph that the abstract is from. The answer format must be like \"Paragraph 1\", \"Paragraph 2\", etc.\n\nThe answer is: ",
+    "lcc": "Please complete the code given below. \n{context}Next line of code:\n",
+    "repobench-p": "Please complete the code given below. \n{context}{input}Next line of code:\n",
+}
+
 
 def dtype_from_string(name: str) -> torch.dtype:
     if name == "float32":
@@ -110,6 +129,7 @@ def full_text_ppl(
 
     This scores each token once, using as much left context as max_length allows.
     """
+        
     device = first_model_device(model)
 
     enc = tokenizer(text, return_tensors="pt", add_special_tokens=True)
@@ -152,12 +172,14 @@ def answer_conditional_ppl(
     prompt: str,
     answer: str,
     max_length: int,
+    stride: int,
 ) -> tuple[float, int]:
     """
-    Scores answer tokens only, conditioned on prompt.
+    Scores all answer tokens, conditioned on as much prompt + previous answer
+    context as fits in max_length.
 
-    If prompt+answer exceeds max_length, we left-truncate the prompt side.
-    This is the pragmatic long-context evaluation behavior.
+    If prompt + answer prefix exceeds max_length, we keep the rightmost
+    max_length tokens for that scoring window.
     """
     device = first_model_device(model)
 
@@ -171,27 +193,45 @@ def answer_conditional_ppl(
     if len(answer_ids) == 0:
         return 0.0, 0
 
-    full_ids = prompt_ids + answer_ids
-    labels = [-100] * len(prompt_ids) + answer_ids
+    # Do not try to score more answer tokens in one window than the model can handle.
+    answer_stride = min(stride, max_length - 1)
 
-    if len(full_ids) > max_length:
-        # Keep the rightmost max_length tokens, so the answer remains present.
-        full_ids = full_ids[-max_length:]
-        labels = labels[-max_length:]
+    total_nll = 0.0
+    total_tokens = 0
 
-    input_ids = torch.tensor(full_ids, dtype=torch.long, device=device).unsqueeze(0)
-    label_ids = torch.tensor(labels, dtype=torch.long, device=device).unsqueeze(0)
+    for start in range(0, len(answer_ids), answer_stride):
+        end = min(start + answer_stride, len(answer_ids))
 
-    nll, n_tokens = nll_sum_for_labels(model, input_ids, label_ids)
-    return nll, n_tokens
+        # Model sees prompt plus answer up through the current chunk.
+        full_ids = prompt_ids + answer_ids[:end]
+
+        # Ignore prompt and previous answer tokens.
+        # Score only answer_ids[start:end].
+        labels = [-100] * (len(prompt_ids) + start) + answer_ids[start:end]
+
+        if len(full_ids) > max_length:
+            full_ids = full_ids[-max_length:]
+            labels = labels[-max_length:]
+
+        input_ids = torch.tensor(full_ids, dtype=torch.long, device=device).unsqueeze(0)
+        label_ids = torch.tensor(labels, dtype=torch.long, device=device).unsqueeze(0)
+
+        nll, n_tokens = nll_sum_for_labels(model, input_ids, label_ids)
+
+        total_nll += nll
+        total_tokens += n_tokens
+
+    return total_nll, total_tokens
 
 
-def make_longbench_prompt(example: dict) -> str:
+def make_longbench_prompt(example: dict, task: str) -> str:
     context = example.get("context", "")
     inp = example.get("input", "")
 
-    # Simple generic format. Later we can swap this for official LongBench task prompts.
-    return f"Context:\n{context}\n\nInput:\n{inp}\n\nAnswer:"
+    if task not in LONGBENCH_PROMPTS:
+        raise ValueError(f"No LongBench prompt template found for task: {task}")
+
+    return LONGBENCH_PROMPTS[task].format(context=context, input=inp)
 
 
 def make_longbench_full_text(example: dict) -> str:
@@ -216,7 +256,7 @@ def main():
     parser.add_argument("--mode", choices=["full", "answer"], default="full")
     parser.add_argument("--limit", type=int, default=None, help="Limit examples per task for smoke tests")
     parser.add_argument("--max-length", type=int, default=None, help="Context window used for scoring")
-    parser.add_argument("--stride", type=int, default=None, help="Stride for full-text sliding-window PPL")
+    parser.add_argument("--stride", type=int, default=None, help="Stride for sliding-window PPL")
     parser.add_argument("--device", default="cuda" if torch.cuda.is_available() else "cpu")
     parser.add_argument("--dtype", choices=["float32", "float16", "bfloat16"], default="float32")
     parser.add_argument("--trust-remote-code", action="store_true")
@@ -244,8 +284,15 @@ def main():
     if inferred_max_length is None or inferred_max_length > 1_000_000:
         inferred_max_length = 2048
 
-    max_length = args.max_length or int(inferred_max_length)
-    stride = args.stride or max_length
+    max_length = args.max_length if args.max_length is not None else int(inferred_max_length)
+    stride = args.stride if args.stride is not None else max_length
+    
+    if max_length < 2:
+        raise ValueError("max_length must be >= 2")
+    if stride <= 0:
+        raise ValueError("stride must be > 0")
+    if stride > max_length:
+        raise ValueError("stride must be <= max_length")
 
     print(f"max_length: {max_length}")
     print(f"stride: {stride}")
@@ -290,7 +337,7 @@ def main():
                 answers = ex.get("answers", [])
                 if not answers:
                     continue
-                prompt = make_longbench_prompt(ex)
+                prompt = make_longbench_prompt(ex, task)
                 answer = str(answers[0])
                 nll, n_tokens = answer_conditional_ppl(
                     model=model,
@@ -298,6 +345,7 @@ def main():
                     prompt=prompt,
                     answer=answer,
                     max_length=max_length,
+                    stride=stride,
                 )
 
             if n_tokens == 0:
@@ -306,6 +354,10 @@ def main():
             task_nll += nll
             task_tokens += n_tokens
             n_examples += 1
+
+        if task_tokens == 0:
+            print(f"Skipping task {task}: no scored tokens.")
+            continue
 
         task_avg_nll = task_nll / task_tokens
         task_ppl = math.exp(task_avg_nll)
@@ -328,6 +380,9 @@ def main():
 
         grand_nll += task_nll
         grand_tokens += task_tokens
+
+    if grand_tokens == 0:
+        raise RuntimeError("No scored tokens across all tasks.")
 
     overall_avg_nll = grand_nll / grand_tokens
     overall_ppl = math.exp(overall_avg_nll)

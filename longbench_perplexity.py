@@ -165,6 +165,38 @@ def full_text_ppl(
     return total_nll, total_tokens
 
 
+def tokenize_prompt(
+    tokenizer,
+    prompt: str,
+    use_chat_template: bool,
+) -> list[int]:
+    """
+    Tokenize an answer-mode prompt.
+
+    Raw mode matches the existing behavior. Chat mode uses the
+    tokenizer's native chat template and leaves the assistant
+    generation prompt in place before the gold answer.
+    """
+
+    if use_chat_template:
+        return tokenizer.apply_chat_template(
+            [{"role": "user", "content": prompt}],
+            tokenize=True,
+            add_generation_prompt=True,
+        )
+
+    prompt_ids = tokenizer(
+        prompt,
+        add_special_tokens=False,
+    )["input_ids"]
+
+    bos_id = tokenizer.bos_token_id
+    if bos_id is not None:
+        prompt_ids = [bos_id] + prompt_ids
+
+    return prompt_ids
+
+
 @torch.no_grad()
 def answer_conditional_ppl(
     model,
@@ -173,6 +205,7 @@ def answer_conditional_ppl(
     answer: str,
     max_length: int,
     stride: int,
+    use_chat_template: bool,
 ) -> tuple[float, int]:
     """
     Scores all answer tokens, conditioned on as much prompt + previous answer
@@ -183,12 +216,12 @@ def answer_conditional_ppl(
     """
     device = first_model_device(model)
 
-    prompt_ids = tokenizer(prompt, add_special_tokens=False)["input_ids"]
+    prompt_ids = tokenize_prompt(
+        tokenizer=tokenizer,
+        prompt=prompt,
+        use_chat_template=use_chat_template,
+    )
     answer_ids = tokenizer(answer, add_special_tokens=False)["input_ids"]
-
-    bos_id = tokenizer.bos_token_id
-    if bos_id is not None:
-        prompt_ids = [bos_id] + prompt_ids
 
     if len(answer_ids) == 0:
         return 0.0, 0
@@ -260,6 +293,11 @@ def main():
     parser.add_argument("--device", default="cuda" if torch.cuda.is_available() else "cpu")
     parser.add_argument("--dtype", choices=["float32", "float16", "bfloat16"], default="float32")
     parser.add_argument("--trust-remote-code", action="store_true")
+    parser.add_argument(
+        "--use-chat-template",
+        action="store_true",
+        help="Use the tokenizer's native chat template in answer mode only",
+    )
     parser.add_argument("--output-jsonl", default=None, help="Optional per-task JSONL output")
     args = parser.parse_args()
 
@@ -297,6 +335,8 @@ def main():
     print(f"max_length: {max_length}")
     print(f"stride: {stride}")
     print(f"mode: {args.mode}")
+    if args.mode == "answer":
+        print(f"use_chat_template: {args.use_chat_template}")
 
     out_f = None
     if args.output_jsonl:
@@ -346,6 +386,7 @@ def main():
                     answer=answer,
                     max_length=max_length,
                     stride=stride,
+                    use_chat_template=args.use_chat_template,
                 )
 
             if n_tokens == 0:
@@ -365,6 +406,7 @@ def main():
         row = {
             "task": task,
             "mode": args.mode,
+            "use_chat_template": args.use_chat_template if args.mode == "answer" else False,
             "examples": n_examples,
             "tokens_scored": task_tokens,
             "avg_nll": task_avg_nll,
@@ -390,6 +432,7 @@ def main():
     overall = {
         "task": "OVERALL",
         "mode": args.mode,
+        "use_chat_template": args.use_chat_template if args.mode == "answer" else False,
         "examples": sum(r["examples"] for r in task_rows),
         "tokens_scored": grand_tokens,
         "avg_nll": overall_avg_nll,

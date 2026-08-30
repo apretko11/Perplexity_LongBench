@@ -1,0 +1,5 @@
+{"row_type": "example", "task": "narrativeqa", "example_index": 0, "model": "gpt2", "generated_tokens": 128, "tokens_scored": 128, "nll_sum": 79.07321262359619, "avg_nll": 0.6177594736218452, "perplexity": 1.8547677269215428}
+{"row_type": "example", "task": "narrativeqa", "example_index": 1, "model": "gpt2", "generated_tokens": 128, "tokens_scored": 128, "nll_sum": 34.94090914726257, "avg_nll": 0.27297585271298885, "perplexity": 1.3138685180814824}
+{"row_type": "example", "task": "narrativeqa", "example_index": 2, "model": "gpt2", "generated_tokens": 128, "tokens_scored": 128, "nll_sum": 35.99197053909302, "avg_nll": 0.2811872698366642, "perplexity": 1.324701657371074}
+{"row_type": "task_summary", "task": "narrativeqa", "model": "gpt2", "examples": 3, "tokens_scored": 384, "avg_nll": 0.3906408653904994, "perplexity": 1.4779276431249224}
+{"row_type": "overall_summary", "task": "OVERALL", "model": "gpt2", "examples": 3, "tokens_scored": 384, "avg_nll": 0.3906408653904994, "perplexity": 1.4779276431249224}
