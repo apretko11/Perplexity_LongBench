@@ -1,5 +1,0 @@
-{"row_type": "example", "task": "narrativeqa", "example_index": 0, "model": "microsoft/Phi-3-mini-4k-instruct", "generated_tokens": 12, "tokens_scored": 12, "nll_sum": 5.6941351890563965, "avg_nll": 0.4745112657546997, "perplexity": 1.6072284978953302}
-{"row_type": "example", "task": "narrativeqa", "example_index": 1, "model": "microsoft/Phi-3-mini-4k-instruct", "generated_tokens": 128, "tokens_scored": 128, "nll_sum": 75.57278823852539, "avg_nll": 0.5904124081134796, "perplexity": 1.8047325482896643}
-{"row_type": "example", "task": "narrativeqa", "example_index": 2, "model": "microsoft/Phi-3-mini-4k-instruct", "generated_tokens": 128, "tokens_scored": 128, "nll_sum": 15.366756677627563, "avg_nll": 0.12005278654396534, "perplexity": 1.1275563698123694}
-{"row_type": "task_summary", "task": "narrativeqa", "model": "microsoft/Phi-3-mini-4k-instruct", "examples": 3, "tokens_scored": 268, "avg_nll": 0.3605734332283931, "perplexity": 1.4341515689766842}
-{"row_type": "overall_summary", "task": "OVERALL", "model": "microsoft/Phi-3-mini-4k-instruct", "examples": 3, "tokens_scored": 268, "avg_nll": 0.3605734332283931, "perplexity": 1.4341515689766842}

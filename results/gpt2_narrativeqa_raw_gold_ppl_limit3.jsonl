@@ -1,2 +1,0 @@
-{"task": "narrativeqa", "mode": "answer", "use_chat_template": false, "examples": 3, "tokens_scored": 27, "avg_nll": 3.670231571903935, "perplexity": 39.26099655141135}
-{"task": "OVERALL", "mode": "answer", "use_chat_template": false, "examples": 3, "tokens_scored": 27, "avg_nll": 3.670231571903935, "perplexity": 39.26099655141135}

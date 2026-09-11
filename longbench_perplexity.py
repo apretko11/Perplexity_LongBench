@@ -211,8 +211,8 @@ def answer_conditional_ppl(
     Scores all answer tokens, conditioned on as much prompt + previous answer
     context as fits in max_length.
 
-    If prompt + answer prefix exceeds max_length, we keep the rightmost
-    max_length tokens for that scoring window.
+    If the prompt must be truncated, keep tokens from both its beginning and
+    end while preserving the answer prefix used by the current scoring window.
     """
     device = first_model_device(model)
 
@@ -235,13 +235,29 @@ def answer_conditional_ppl(
     for start in range(0, len(answer_ids), answer_stride):
         end = min(start + answer_stride, len(answer_ids))
 
-        # Model sees prompt plus answer up through the current chunk.
-        full_ids = prompt_ids + answer_ids[:end]
+        # Reserve space for the answer prefix, then middle-truncate only the prompt.
+        answer_prefix = answer_ids[:end]
+        prompt_budget = max_length - len(answer_prefix)
+
+        if prompt_budget > 0 and len(prompt_ids) > prompt_budget:
+            left = (prompt_budget + 1) // 2
+            right = prompt_budget - left
+            window_prompt = prompt_ids[:left]
+            if right:
+                window_prompt += prompt_ids[-right:]
+        elif prompt_budget > 0:
+            window_prompt = prompt_ids
+        else:
+            window_prompt = []
+
+        # Model sees the retained prompt plus answer up through the current chunk.
+        full_ids = window_prompt + answer_prefix
 
         # Ignore prompt and previous answer tokens.
         # Score only answer_ids[start:end].
-        labels = [-100] * (len(prompt_ids) + start) + answer_ids[start:end]
+        labels = [-100] * (len(window_prompt) + start) + answer_ids[start:end]
 
+        # Only needed when the answer prefix itself exceeds the context window.
         if len(full_ids) > max_length:
             full_ids = full_ids[-max_length:]
             labels = labels[-max_length:]
@@ -378,16 +394,31 @@ def main():
                 if not answers:
                     continue
                 prompt = make_longbench_prompt(ex, task)
-                answer = str(answers[0])
-                nll, n_tokens = answer_conditional_ppl(
-                    model=model,
-                    tokenizer=tokenizer,
-                    prompt=prompt,
-                    answer=answer,
-                    max_length=max_length,
-                    stride=stride,
-                    use_chat_template=args.use_chat_template,
-                )
+
+                # LongBench may provide multiple valid references. Score all of
+                # them and keep the reference with the lowest mean token NLL.
+                best = None
+                for answer in answers:
+                    candidate_nll, candidate_tokens = answer_conditional_ppl(
+                        model=model,
+                        tokenizer=tokenizer,
+                        prompt=prompt,
+                        answer=str(answer),
+                        max_length=max_length,
+                        stride=stride,
+                        use_chat_template=args.use_chat_template,
+                    )
+                    if candidate_tokens == 0:
+                        continue
+
+                    candidate_avg_nll = candidate_nll / candidate_tokens
+                    if best is None or candidate_avg_nll < best[0]:
+                        best = (candidate_avg_nll, candidate_nll, candidate_tokens)
+
+                if best is None:
+                    continue
+
+                _, nll, n_tokens = best
 
             if n_tokens == 0:
                 continue
@@ -426,8 +457,13 @@ def main():
     if grand_tokens == 0:
         raise RuntimeError("No scored tokens across all tasks.")
 
-    overall_avg_nll = grand_nll / grand_tokens
-    overall_ppl = math.exp(overall_avg_nll)
+    # Micro PPL is token-weighted across all tasks (the previous OVERALL metric).
+    micro_avg_nll = grand_nll / grand_tokens
+    micro_ppl = math.exp(micro_avg_nll)
+
+    # Macro PPL gives each task equal weight by averaging task mean NLLs first.
+    macro_avg_nll = sum(r["avg_nll"] for r in task_rows) / len(task_rows)
+    macro_ppl = math.exp(macro_avg_nll)
 
     overall = {
         "task": "OVERALL",
@@ -435,8 +471,13 @@ def main():
         "use_chat_template": args.use_chat_template if args.mode == "answer" else False,
         "examples": sum(r["examples"] for r in task_rows),
         "tokens_scored": grand_tokens,
-        "avg_nll": overall_avg_nll,
-        "perplexity": overall_ppl,
+        # Keep the old keys as aliases for backward compatibility; they are micro.
+        "avg_nll": micro_avg_nll,
+        "perplexity": micro_ppl,
+        "micro_avg_nll": micro_avg_nll,
+        "micro_perplexity": micro_ppl,
+        "macro_avg_nll": macro_avg_nll,
+        "macro_perplexity": macro_ppl,
     }
 
     print()

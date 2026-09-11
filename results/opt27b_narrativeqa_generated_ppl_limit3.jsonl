@@ -1,5 +1,0 @@
-{"row_type": "example", "task": "narrativeqa", "example_index": 0, "model": "facebook/opt-2.7b", "generated_tokens": 128, "tokens_scored": 128, "nll_sum": 35.88735246658325, "avg_nll": 0.28036994114518166, "perplexity": 1.3236193830460279}
-{"row_type": "example", "task": "narrativeqa", "example_index": 1, "model": "facebook/opt-2.7b", "generated_tokens": 128, "tokens_scored": 128, "nll_sum": 28.990678906440735, "avg_nll": 0.22648967895656824, "perplexity": 1.2541896652210964}
-{"row_type": "example", "task": "narrativeqa", "example_index": 2, "model": "facebook/opt-2.7b", "generated_tokens": 128, "tokens_scored": 128, "nll_sum": 32.99967432022095, "avg_nll": 0.25780995562672615, "perplexity": 1.294092860186897}
-{"row_type": "task_summary", "task": "narrativeqa", "model": "facebook/opt-2.7b", "examples": 3, "tokens_scored": 384, "avg_nll": 0.2548898585761587, "perplexity": 1.290319495419648}
-{"row_type": "overall_summary", "task": "OVERALL", "model": "facebook/opt-2.7b", "examples": 3, "tokens_scored": 384, "avg_nll": 0.2548898585761587, "perplexity": 1.290319495419648}
