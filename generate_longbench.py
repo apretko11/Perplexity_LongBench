@@ -9,6 +9,7 @@ import torch
 from datasets import load_dataset
 from tqdm import tqdm
 from transformers import AutoModelForCausalLM, AutoTokenizer
+from longbench_utils import build_generation_context, token_ids_sha256
 
 
 DEFAULT_LONGBENCH_TASKS = [
@@ -182,101 +183,68 @@ def generate_answer(
     max_new_tokens: int,
     generation_chunk_size: int,
     use_chat_template: bool,
+    generation_trace: dict | None = None,
 ) -> tuple[str, list[int], list[int], int]:
+    """Generate with LongBench-style head/tail prompt truncation.
+
+    At each chunk, reserve room for ``chunk_new_tokens``. Keep the recent
+    generated answer tokens first, then use the remaining context budget for
+    the beginning and end of the original tokenized prompt. No decoding and
+    re-tokenization takes place. Even when chunks roll, the generated history
+    remains in causal order and the total forward length stays <= max_length.
+
+    An optional ``generation_trace`` receives lightweight metadata sufficient
+    to reconstruct *exactly* each input to model.generate() in Step 3. This
+    retains the original four-value return for existing callers.
     """
-    Generate an answer using rolling context.
-
-    Generation may continue for more tokens than fit in one model context
-    window. Before each generation chunk, keep only as much recent
-    prompt + previously generated context as fits while leaving room for
-    that chunk.
-
-    Returns:
-        prediction:
-            Decoded generated answer.
-
-        generated_token_ids:
-            Exact token IDs produced by model.generate(), including EOS
-            if the model generated EOS.
-
-        generated_content_token_ids:
-            Generated token IDs with trailing EOS/pad removed. These are
-            convenient for later PPL scoring so generated-answer PPL is
-            comparable to gold-answer PPL, which does not append EOS.
-
-        original_prompt_tokens:
-            Number of tokens in the full prompt before rolling truncation.
-    """
-
     if max_length < 2:
         raise ValueError("max_length must be >= 2")
-
     if max_new_tokens <= 0:
         raise ValueError("max_new_tokens must be > 0")
-
-    if generation_chunk_size <= 0:
-        raise ValueError("generation_chunk_size must be > 0")
-
-    if generation_chunk_size >= max_length:
-        raise ValueError(
-            "generation_chunk_size must be smaller than max_length"
-        )
+    if generation_chunk_size <= 0 or generation_chunk_size >= max_length:
+        raise ValueError("generation_chunk_size must be in [1, max_length - 1]")
 
     device = first_model_device(model)
-
     prompt_ids = tokenize_prompt(
         tokenizer=tokenizer,
         prompt=prompt,
         use_chat_template=use_chat_template,
     )
-
     original_prompt_tokens = len(prompt_ids)
-
     if original_prompt_tokens == 0:
         raise RuntimeError("Prompt produced zero tokens.")
 
-    # Keep the complete logical history here.
-    #
-    # It may grow beyond max_length. Before each model call we take only
-    # the rightmost portion that can fit in the actual model window.
-    history_ids = prompt_ids.copy()
+    if generation_trace is not None:
+        generation_trace.clear()
+        generation_trace.update({
+            "format": "head_tail_prompt_recent_generation_v1",
+            "prompt_token_ids_sha256": token_ids_sha256(prompt_ids),
+            "chunks": [],
+        })
 
-    # Exact generated sequence across every generation chunk.
     generated_token_ids = []
-
     eos_id = tokenizer.eos_token_id
     pad_id = tokenizer.pad_token_id
 
     while len(generated_token_ids) < max_new_tokens:
-
         remaining = max_new_tokens - len(generated_token_ids)
-
-        # Generate at most generation_chunk_size tokens during this call.
-        chunk_new_tokens = min(
-            generation_chunk_size,
-            remaining,
-        )
-
-        # Leave room inside max_length for this entire generation chunk.
+        chunk_new_tokens = min(generation_chunk_size, remaining)
         context_budget = max_length - chunk_new_tokens
 
-        if context_budget < 1:
-            raise RuntimeError(
-                "No context space remains for generation."
-            )
-
-        # Rolling context:
-        # keep the most recent prompt / answer history that fits.
-        context_ids = history_ids[-context_budget:]
+        # Generated history takes precedence. Remaining capacity is split
+        # between the start and end of the original LongBench prompt.
+        context_ids, context_plan = build_generation_context(
+            prompt_ids, generated_token_ids, context_budget,
+        )
+        if len(context_ids) + chunk_new_tokens > max_length:
+            raise RuntimeError("Generation context exceeds max_length")
 
         input_ids = torch.tensor(
-            context_ids,
-            dtype=torch.long,
-            device=device,
+            context_ids, dtype=torch.long, device=device,
         ).unsqueeze(0)
-
         attention_mask = torch.ones_like(input_ids)
 
+        generated_start = len(generated_token_ids)
         output_ids = model.generate(
             input_ids=input_ids,
             attention_mask=attention_mask,
@@ -286,63 +254,46 @@ def generate_answer(
             pad_token_id=pad_id,
             eos_token_id=eos_id,
         )
-
-        # model.generate() returns:
-        #
-        #     [input context][newly generated tokens]
-        #
-        # Keep only the new part.
-        new_ids = output_ids[
-            0,
-            input_ids.shape[1]:
-        ].tolist()
-
-        if len(new_ids) == 0:
+        new_ids = output_ids[0, input_ids.shape[1]:].tolist()
+        if not new_ids:
             break
+        if len(new_ids) > chunk_new_tokens:
+            raise RuntimeError("model.generate() produced more tokens than requested")
 
         generated_token_ids.extend(new_ids)
-        history_ids.extend(new_ids)
+        if generation_trace is not None:
+            generation_trace["chunks"].append({
+                "chunk_index": len(generation_trace["chunks"]),
+                "requested_new_tokens": chunk_new_tokens,
+                "generated_start": generated_start,
+                "generated_end": len(generated_token_ids),
+                **context_plan,
+            })
 
-        # If EOS appeared anywhere in this chunk, generation is finished.
         if eos_id is not None and eos_id in new_ids:
             break
-
-        # generate() may occasionally return fewer tokens than requested
-        # without EOS. Avoid an accidental infinite loop.
         if len(new_ids) < chunk_new_tokens:
             break
 
-    # Preserve generated_token_ids exactly as model.generate() returned
-    # them. For decoded answer text / later answer-PPL scoring, remove
-    # trailing EOS/padding because the existing gold-answer scorer does
-    # not append EOS to the gold answer.
+    # Preserve exact raw IDs, including EOS, for context reconstruction.
+    # Do not score trailing EOS/pad as answer *content*, matching gold PPL.
     generated_content_token_ids = generated_token_ids.copy()
-
     trailing_special_ids = {
-        token_id
-        for token_id in (eos_id, pad_id)
-        if token_id is not None
+        token_id for token_id in (eos_id, pad_id) if token_id is not None
     }
-
-    while (
-        generated_content_token_ids
-        and generated_content_token_ids[-1]
-        in trailing_special_ids
-    ):
+    while (generated_content_token_ids
+           and generated_content_token_ids[-1] in trailing_special_ids):
         generated_content_token_ids.pop()
 
     prediction = tokenizer.decode(
-        generated_content_token_ids,
-        skip_special_tokens=True,
+        generated_content_token_ids, skip_special_tokens=True,
     )
-
     return (
         prediction,
         generated_token_ids,
         generated_content_token_ids,
         original_prompt_tokens,
     )
-
 
 def main():
     parser = argparse.ArgumentParser(
@@ -577,6 +528,7 @@ def main():
                     task=task,
                 )
 
+                generation_trace = {}
                 (
                     prediction,
                     generated_token_ids,
@@ -594,6 +546,7 @@ def main():
                     use_chat_template=(
                         args.use_chat_template
                     ),
+                    generation_trace=generation_trace,
                 )
 
                 row = {
@@ -640,6 +593,8 @@ def main():
                     "use_chat_template": (
                         args.use_chat_template
                     ),
+
+                    "generation_trace": generation_trace,
 
                     "answers": ex.get(
                         "answers",

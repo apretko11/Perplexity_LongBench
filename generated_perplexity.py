@@ -420,6 +420,20 @@ def main():
         input_path
     )
 
+    # Step 2 changes generation conditioning contexts. The legacy scorer
+    # must never silently give mismatched results for those rows.
+    if any(
+        isinstance(row.get("generation_trace"), dict)
+        and row["generation_trace"].get("format")
+        == "head_tail_prompt_recent_generation_v1"
+        for row in rows
+    ):
+        raise RuntimeError(
+            "This JSONL uses Step 2 middle-truncated generation contexts. "
+            "The current self-PPL scorer reconstructs tail-only windows, "
+            "so it must not score these generations until Step 3."
+        )
+
     # ------------------------------------------------------------------
     # Self-perplexity guard
     # ------------------------------------------------------------------

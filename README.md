@@ -186,16 +186,31 @@ max_length = 1024
 generation_chunk_size = 64
 ```
 
-Each generation step keeps the most recent history that fits while leaving room for up to 64 new tokens.
+Each generation step reserves room for its next output chunk. It retains the **most
+recent generated-answer tokens**, then splits the remaining input budget between
+the **beginning and end of the original prompt** (LongBench-style middle
+truncation). Unlike the old tail-only policy, this usually preserves both the
+task instructions and question. If an answer grows longer than a window,
+its recent generated tokens take priority and the prompt can disappear.
 
 Conceptually:
 
 ```text
-[recent prompt / generated history][room for next chunk]
-<--------------- max_length ----------------------->
+[prompt head][prompt tail][recent generated tokens][room for next chunk]
+<--------------------------- max_length ----------------------------->
 ```
 
-After each chunk, the generated IDs are appended to the logical history and the context window rolls forward.
+Each output row now includes a compact `generation_trace` containing the
+prompt-token SHA256 and, per chunk, the exact input token checksum,
+original-prompt head/tail spans, retained generated-history span, and
+new-token indices. These spans reconstruct the *actual input IDs* passed
+to `model.generate()` without storing those long IDs repeatedly. Step 3 will
+use `reconstruct_generation_context` and verify the checksum. The original
+four-value return from `generate_answer()` remains supported.
+
+**Important:** Until Step 3, `generated_perplexity.py` intentionally refuses
+the new traced generation files because its legacy tail-only scoring
+context would not match generation. Older untraced files are still accepted.
 
 This means `max_new_tokens` is a stopping cap, not a requirement that the entire answer fit alongside the original prompt in one context window.
 

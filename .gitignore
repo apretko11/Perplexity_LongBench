@@ -25,3 +25,6 @@ venv_lb/
 *.pth
 *.bin
 *.safetensors
+
+# Evaluation output
+results/
