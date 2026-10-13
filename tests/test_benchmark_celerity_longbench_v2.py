@@ -133,5 +133,87 @@ class BatchTests(unittest.TestCase):
             self.assertEqual(len(list((path/'tasks').glob('*.jsonl'))),1)
 
 
+    def test_ephemeral_cache_forwarded_and_removed_after_success(self):
+        # No touching a shared Hugging Face cache; a unique owned directory
+        # is passed to model loading and removed when the model finishes.
+        args = SimpleNamespace(context_mode='common', common_context=4096,
+            answer_stride=64, device='cpu', dtype='float32', progress_every=10,
+            ephemeral_model_cache=True)
+        spec_model = dict(model='adpretko/celerity-271m-4k-ad0p0',
+            revision='a'*40, trained_context_tokens=4096)
+        cases = [dict(task='narrativeqa', example_index=0, example_id='ex',
+            prompt='Question', answer='Paris', length_group='4k')]
+        seen = []
+
+        def fake_load(spec, dtype, device, cache_dir=None):
+            self.assertIsNotNone(cache_dir)
+            path = Path(cache_dir)
+            self.assertTrue(path.is_dir())
+            (path / 'model-weights.bin').write_bytes(b'dummy')
+            seen.append(path)
+            return object(), FakeTokenizer(), 'digest'
+
+        with tempfile.TemporaryDirectory() as root:
+            args.model_cache_parent = Path(root) / 'ephemeral'
+            untouched = Path(root) / 'shared_cache'
+            untouched.mkdir()
+            (untouched / 'existing.bin').write_bytes(b'keep')
+            with patch.object(pilot, 'load_model', side_effect=fake_load):
+                row = pilot.run_one(spec_model, cases, args, Path(root)/'results')
+            self.assertEqual(row['status'], 'ok', row)
+            self.assertEqual(len(seen), 1)
+            self.assertFalse(seen[0].exists())
+            self.assertTrue((untouched/'existing.bin').exists())
+            self.assertEqual(list(args.model_cache_parent.iterdir()), [])
+
+    def test_ephemeral_cache_removed_when_loading_fails(self):
+        args = SimpleNamespace(context_mode='common', common_context=4096,
+            answer_stride=64, device='cpu', dtype='float32', progress_every=10,
+            ephemeral_model_cache=True)
+        spec_model = dict(model='adpretko/celerity-271m-4k-ad0p0',
+            revision='a'*40, trained_context_tokens=4096)
+        seen = []
+
+        def broken_load(spec, dtype, device, cache_dir=None):
+            path = Path(cache_dir)
+            (path/'partial-download.bin').write_bytes(b'part')
+            seen.append(path)
+            raise RuntimeError('simulated failure')
+
+        with tempfile.TemporaryDirectory() as root:
+            args.model_cache_parent = Path(root)/'ephemeral'
+            with patch.object(pilot, 'load_model', side_effect=broken_load):
+                row = pilot.run_one(spec_model, [], args, Path(root)/'results')
+            self.assertEqual(row['status'], 'error')
+            self.assertIn('simulated failure', row['error'])
+            self.assertEqual(len(seen), 1)
+            self.assertFalse(seen[0].exists())
+            self.assertEqual(list(args.model_cache_parent.iterdir()), [])
+
+    def test_load_model_scoped_cache_applies_to_model_and_tokenizer(self):
+        class ToyLM:
+            config = SimpleNamespace(model_type='celerity')
+            def to(self, device): return self
+            def eval(self): return self
+        class ToyTokenizer:
+            special_tokens_map = {'bos_token': '<s>'}
+            def get_vocab(self): return {'hello': 0}
+        class CaptureFactory:
+            def __init__(self, return_value):
+                self.return_value = return_value
+                self.kwargs = None
+            def from_pretrained(self, *a, **kw):
+                self.kwargs = kw
+                return self.return_value
+        tf = CaptureFactory(ToyTokenizer())
+        mf = CaptureFactory(ToyLM())
+        spec_model = dict(model='adpretko/celerity-271m-4k-ad0p0',revision='a'*40)
+        with patch.object(pilot,'AutoTokenizer',tf), patch.object(pilot,'AutoModelForCausalLM',mf):
+            _,_,digest=pilot.load_model(spec_model,'float32','cpu',cache_dir='/temp/only-this-model')
+        self.assertEqual(tf.kwargs['cache_dir'],'/temp/only-this-model')
+        self.assertEqual(mf.kwargs['cache_dir'],'/temp/only-this-model')
+        self.assertTrue(digest)
+
+
 if __name__ == '__main__':
     unittest.main()

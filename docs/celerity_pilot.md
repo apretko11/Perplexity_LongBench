@@ -112,3 +112,38 @@ The standard scorer computes full `[sequence, vocabulary]` logits. The Celerity 
 - Inspect per-task results and truncation rates; do not compare different evaluation contexts as if equivalent.
 - For final experimental inference, freeze stratified task/length samples (LongBench-E can help) and use paired Celerity NLL differences, rather than assuming an 80-example pilot has sufficient statistical power.
 - For true generated-answer task accuracy, use LongBench's task-specific evaluation metrics; self-PPL alone does not establish correctness.
+
+## Disk-safe evaluation of all models
+
+The driver normally reuses the global Hugging Face model cache. When evaluating
+many Celerity checkpoints on a 100 GB disk, select **per-model disposable caches**:
+
+```bash
+/usr/bin/time -p python benchmark_celerity_longbench_v2.py \
+  --limit-models 0 --tasks all --examples-per-task 5 \
+  --context-mode common --common-context 4096 \
+  --device cuda --dtype bfloat16 \
+  --ephemeral-model-cache --model-cache-parent .cache/celerity_models \
+  --output-dir results/celerity_all_4k_bf16
+```
+
+The script passes a fresh `cache_dir` to both tokenizer/model `from_pretrained`
+calls. After scoring one model (even on an ordinary caught failure), it unloads
+that model, runs GPU/CPU cleanup, and deletes **only the private cache directory
+it created**. It never deletes `~/.cache/huggingface/hub/`, dataset caches,
+manifest files, or experimental results. Metadata `config.json` discovery and
+small remote-code cache files may still accumulate in the normal HF cache.
+
+This option is an *execution* choice, not part of the scientific manifest:
+turning it on for a resumed run does not change scoring methodology or the
+frozen checkpoints/examples. With this mode, re-evaluating a model must download
+its weights again. The model cache parent should be on local disk, not tmpfs.
+A force-killed process or machine crash can leave one incomplete temporary
+folder behind; inspect `.cache/celerity_models/` before manually removing
+orphaned folders (never remove another running worker's cache).
+
+**GPU OOM vs disk full:** Temporary weight caches address *disk capacity*.
+The existing `del`/`gc.collect()`/`torch.cuda.empty_cache()` releases unused
+GPU allocations between models, but no cleanup can reduce a model's peak memory
+requirements during one forward pass. Larger native 8K/16K runs may still need
+more VRAM or a lower-memory scoring implementation.

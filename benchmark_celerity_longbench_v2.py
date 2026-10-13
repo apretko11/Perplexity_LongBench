@@ -27,6 +27,7 @@ import json
 import math
 import re
 import sys
+import tempfile
 import time
 import traceback
 from collections import defaultdict
@@ -209,12 +210,17 @@ def cuda_sync(device: str) -> None:
         torch.cuda.synchronize()
 
 
-def load_model(spec, dtype, device) -> tuple[Any, Any, str]:
+def load_model(spec, dtype, device, cache_dir: str | None = None) -> tuple[Any, Any, str]:
     repo, revision = spec["model"], spec["revision"]
+    # Keep checkpoint weights in a private temporary directory when requested.
+    # Metadata discovery and LongBench datasets retain their normal caches.
+    cache_kwargs = {"cache_dir": cache_dir} if cache_dir is not None else {}
     tok = AutoTokenizer.from_pretrained(repo, revision=revision,
-                                        trust_remote_code=True, use_fast=True)
+                                        trust_remote_code=True, use_fast=True,
+                                        **cache_kwargs)
     lm = AutoModelForCausalLM.from_pretrained(repo, revision=revision,
-                                             trust_remote_code=True, torch_dtype=DTYPES[dtype])
+                                             trust_remote_code=True, torch_dtype=DTYPES[dtype],
+                                             **cache_kwargs)
     if lm.config.model_type != "celerity":
         raise RuntimeError(f"Unexpected loaded model type: {lm.config.model_type}")
     lm.to(device)
@@ -313,12 +319,25 @@ def run_one(spec: dict, cases: list[dict], args, out: Path) -> dict:
     path = out / "examples" / (name + ".jsonl")
     path.parent.mkdir(parents=True, exist_ok=True)
     lm = tok = None
+    model_cache = None
     start = time.perf_counter()
     task_totals: dict[str, dict] = defaultdict(lambda: {"nll_sum": 0., "tokens_scored": 0, "examples": 0})
     means = []
     try:
         load_start = time.perf_counter()
-        lm, tok, digest = load_model(spec, args.dtype, args.device)
+        if getattr(args, "ephemeral_model_cache", False):
+            cache_parent = Path(args.model_cache_parent).expanduser()
+            cache_parent.mkdir(parents=True, exist_ok=True)
+            # Only this new directory will be deleted. Never delete the
+            # user's shared HF cache or anything from previous experiments.
+            model_cache = tempfile.TemporaryDirectory(
+                prefix="celerity-model-", dir=str(cache_parent)
+            )
+            lm, tok, digest = load_model(
+                spec, args.dtype, args.device, cache_dir=model_cache.name
+            )
+        else:
+            lm, tok, digest = load_model(spec, args.dtype, args.device)
         cuda_sync(args.device)
         row["load_seconds"] = time.perf_counter() - load_start
         row["tokenizer_digest"] = digest
@@ -376,12 +395,20 @@ def run_one(spec: dict, cases: list[dict], args, out: Path) -> dict:
         print(f"ERROR evaluating {spec['model']}: {row['error']}", file=sys.stderr, flush=True)
         traceback.print_exc(limit=5)
     finally:
-        cuda_sync(args.device)
-        row["total_seconds"] = time.perf_counter() - start
-        del lm, tok
-        gc.collect()
-        if args.device.startswith("cuda") and torch.cuda.is_available():
-            torch.cuda.empty_cache()
+        # Model VRAM must be released before its on-disk cache is removed.
+        # Also remove the temporary weights after a failed model evaluation.
+        try:
+            cuda_sync(args.device)
+        finally:
+            row["total_seconds"] = time.perf_counter() - start
+            del lm, tok
+            gc.collect()
+            try:
+                if args.device.startswith("cuda") and torch.cuda.is_available():
+                    torch.cuda.empty_cache()
+            finally:
+                if model_cache is not None:
+                    model_cache.cleanup()
     return row
 
 
@@ -403,6 +430,14 @@ def parse_args() -> argparse.Namespace:
     p.add_argument("--dtype", choices=list(DTYPES), default="float16")
     p.add_argument("--progress-every", type=int, default=10)
     p.add_argument("--force", action="store_true", help="Re-run completed models")
+    p.add_argument(
+        "--ephemeral-model-cache", action="store_true",
+        help="Download each model to a private temporary cache, delete after evaluation",
+    )
+    p.add_argument(
+        "--model-cache-parent", type=Path, default=Path(".cache/celerity_models"),
+        help="Folder to hold per-model disposable caches (only new subfolders are deleted)",
+    )
     args = p.parse_args()
     args.tasks = (list(DEFAULT_LONGBENCH_TASKS) if args.tasks == "all" else
                   [x.strip() for x in args.tasks.split(",") if x.strip()])
