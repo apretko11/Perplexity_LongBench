@@ -208,9 +208,10 @@ to `model.generate()` without storing those long IDs repeatedly. Step 3 will
 use `reconstruct_generation_context` and verify the checksum. The original
 four-value return from `generate_answer()` remains supported.
 
-**Important:** Until Step 3, `generated_perplexity.py` intentionally refuses
-the new traced generation files because its legacy tail-only scoring
-context would not match generation. Older untraced files are still accepted.
+`generated_perplexity.py` now accepts the Step 2 trace format and verifies
+exact input contexts before scoring. Older untraced files are still accepted,
+but they are labeled `legacy_untraced_tail_window` and should not be mixed
+with newly generated outputs.
 
 This means `max_new_tokens` is a stopping cap, not a requirement that the entire answer fit alongside the original prompt in one context window.
 
@@ -240,17 +241,24 @@ and:
 
 ## Generated-answer scoring windows
 
-Generated answers are scored chunk by chunk.
+**New traced generations (Step 2 format):** for each recorded chunk, the
+scorer verifies the original tokenized prompt SHA256, reconstructs the exact
+head/tail prompt plus preceding generated-history input IDs, and verifies the
+chunk-context checksum. It then teacher-forces that chunk's original generated
+content tokens after its verified context; preceding context is masked from
+loss. Every content token is scored once, including across multiple chunks.
+Trailing EOS/padding is not scored. The saved chunk boundaries are authoritative:
+do not supply `--stride` for traced files or change their `--max-length`.
 
-For each scoring chunk:
+**Older untraced generations:** retain the previous tail-only sliding-window
+scoring behavior for backward compatibility. The output's
+`scoring_context_policy` field distinguishes these from verified traces.
+Numerical values from these two policies should not be pooled as though they
+used the same conditioning contexts.
 
-```text
-prompt + previous generated tokens + current generated chunk
-```
-
-is constructed, labels for the prompt and previously scored answer tokens are masked, and only the current generated tokens contribute to NLL.
-
-If the logical sequence exceeds `max_length`, the scorer keeps the rightmost `max_length` tokens.
+Teacher-forced full forward calls reproduce the same token contexts as
+`model.generate()`, although small floating-point differences versus the
+incremental KV-cache generation kernels are possible.
 
 The scorer accumulates:
 
@@ -264,7 +272,9 @@ perplexity = exp(avg_nll)
 
 Chunk perplexities are **not** averaged directly.
 
-By default, `generated_perplexity.py` reads the saved `generation_chunk_size` from the generation JSONL and uses it as the scoring stride. This aligns the self-PPL scoring windows with the rolling contexts used during generation.
+For traced files, the original generation chunks determine scoring spans.
+For legacy files, `--stride` (or the recorded `generation_chunk_size`) continues
+to define tail-window scoring spans.
 
 ---
 

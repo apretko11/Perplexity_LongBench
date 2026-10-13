@@ -155,21 +155,50 @@ class StepTwoTests(unittest.TestCase):
         )
         self.assertEqual(len(result), 4)
 
-    def test_new_traces_cannot_be_scored_by_legacy_scorer(self):
+    def test_traced_rows_route_to_verified_scorer(self):
+        # Step 3 must accept a valid trace format and dispatch it to the
+        # verified scorer, never the legacy tail-only scorer. Detailed trace
+        # integrity is tested independently in test_step3.py.
         with tempfile.TemporaryDirectory() as td:
             source = Path(td) / "new_generation.jsonl"
+            output = Path(td) / "score.jsonl"
             source.write_text(json.dumps({
                 "model": "fake",
-                "generation_trace": {"format": "head_tail_prompt_recent_generation_v1"},
+                "task": "narrativeqa",
+                "example_index": 0,
+                "max_length": 16,
+                "generation_chunk_size": 4,
+                "use_chat_template": False,
+                "generated_token_ids": [101],
+                "generated_content_token_ids": [101],
+                "generated_tokens": 1,
+                "generated_tokens_raw": 1,
+                "generation_trace": {
+                    "format": "head_tail_prompt_recent_generation_v1",
+                    "chunks": [],  # Mocked scorer validates dispatch, not trace internals.
+                },
             }) + "\n", encoding="utf-8")
             argv = [
                 "generated_perplexity.py", "--model", "fake",
                 "--input-jsonl", str(source),
-                "--output-jsonl", str(Path(td) / "score.jsonl"),
+                "--output-jsonl", str(output),
             ]
-            with patch.object(sys, "argv", argv):
-                with self.assertRaisesRegex(RuntimeError, "Step 3"):
-                    scorer.main()
+            fake_dataset = [{"context": "A document", "input": "A question"}]
+            with (patch.object(sys, "argv", argv),
+                  patch.object(scorer, "load_model_and_tokenizer", return_value=(object(), object())),
+                  patch.object(scorer, "load_dataset", return_value=fake_dataset),
+                  patch.object(scorer, "score_traced_generation", return_value=(2.0, 1, 1)) as verified,
+                  patch.object(scorer, "generated_answer_conditional_ppl",
+                               side_effect=AssertionError("Legacy scoring must not run")),
+                  patch.object(scorer, "tqdm", side_effect=lambda values, **kw: values)):
+                scorer.main()
+            verified.assert_called_once()
+            rows = [json.loads(line) for line in output.read_text().splitlines()]
+            self.assertEqual(rows[0]["scoring_context_policy"],
+                             "head_tail_prompt_recent_generation_v1")
+            self.assertEqual(rows[0]["verified_generation_chunks"], 1)
+            self.assertEqual(rows[0]["tokens_scored"], 1)
+            self.assertEqual(rows[-1]["tokens_scored"], 1)
 
 
 if __name__ == "__main__":

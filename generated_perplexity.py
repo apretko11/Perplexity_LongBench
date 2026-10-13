@@ -10,6 +10,7 @@ import torch.nn.functional as F
 from datasets import load_dataset
 from tqdm import tqdm
 from transformers import AutoModelForCausalLM, AutoTokenizer
+from longbench_traced_scoring import TRACE_FORMAT, score_traced_generation
 
 
 LONGBENCH_PROMPTS = {
@@ -420,19 +421,21 @@ def main():
         input_path
     )
 
-    # Step 2 changes generation conditioning contexts. The legacy scorer
-    # must never silently give mismatched results for those rows.
-    if any(
-        isinstance(row.get("generation_trace"), dict)
-        and row["generation_trace"].get("format")
-        == "head_tail_prompt_recent_generation_v1"
-        for row in rows
-    ):
-        raise RuntimeError(
-            "This JSONL uses Step 2 middle-truncated generation contexts. "
-            "The current self-PPL scorer reconstructs tail-only windows, "
-            "so it must not score these generations until Step 3."
-        )
+    # Never silently mix generation context policies. Traced rows are
+    # replayed from verified Step 2 contexts; older rows retain the legacy
+    # tail-window behavior (which is NOT equivalent to Step 2 generation).
+    kinds = set()
+    for row in rows:
+        trace = row.get("generation_trace")
+        if trace is None:
+            kinds.add("legacy_untraced_tail_window")
+        elif isinstance(trace, dict) and trace.get("format") == TRACE_FORMAT:
+            kinds.add(TRACE_FORMAT)
+        else:
+            raise ValueError("Unknown or malformed generation_trace format")
+    if len(kinds) != 1:
+        raise ValueError("Do not mix traced and untraced generation rows")
+    scoring_context_policy = next(iter(kinds))
 
     # ------------------------------------------------------------------
     # Self-perplexity guard
@@ -535,6 +538,14 @@ def main():
             "stride must be <= max_length"
         )
 
+    if scoring_context_policy == TRACE_FORMAT:
+        # Exact replay is impossible if the scoring context limit differs.
+        if (len(recorded_max_lengths) != 1
+                or max_length != next(iter(recorded_max_lengths))):
+            raise ValueError("Traced scoring max_length must equal generation max_length")
+        if args.stride is not None:
+            raise ValueError("Traced scoring uses saved chunk boundaries; omit --stride")
+
     dtype = dtype_from_string(
         args.dtype
     )
@@ -566,6 +577,7 @@ def main():
     print(
         f"use_chat_template: {use_chat_template}"
     )
+    print(f"scoring_context_policy: {scoring_context_policy}")
 
     model, tokenizer = (
         load_model_and_tokenizer(
@@ -681,8 +693,20 @@ def main():
                 task=task,
             )
 
-            nll, n_tokens = (
-                generated_answer_conditional_ppl(
+            if scoring_context_policy == TRACE_FORMAT:
+                nll, n_tokens, verified_generation_chunks = score_traced_generation(
+                    model=model,
+                    tokenizer=tokenizer,
+                    prompt=prompt,
+                    row=row,
+                    max_length=max_length,
+                    use_chat_template=use_chat_template,
+                    nll_fn=nll_sum_for_labels,
+                    tokenize_prompt_fn=tokenize_prompt,
+                )
+            else:
+                # Backward compatibility for pre-Step-2 generation files.
+                nll, n_tokens = generated_answer_conditional_ppl(
                     model=model,
                     tokenizer=tokenizer,
                     prompt=prompt,
@@ -691,7 +715,7 @@ def main():
                     stride=stride,
                     use_chat_template=use_chat_template,
                 )
-            )
+                verified_generation_chunks = None
 
             # It is possible for a model to immediately emit EOS,
             # producing zero content tokens.
@@ -703,6 +727,8 @@ def main():
                         example_index
                     ),
                     "model": args.model,
+                    "scoring_context_policy": scoring_context_policy,
+                    "verified_generation_chunks": verified_generation_chunks,
                     "generated_tokens": len(
                         answer_ids
                     ),
@@ -737,6 +763,8 @@ def main():
                 "task": task,
                 "example_index": example_index,
                 "model": args.model,
+                "scoring_context_policy": scoring_context_policy,
+                "verified_generation_chunks": verified_generation_chunks,
                 "generated_tokens": len(
                     answer_ids
                 ),
@@ -802,6 +830,7 @@ def main():
                 "row_type": "task_summary",
                 "task": task,
                 "model": args.model,
+                "scoring_context_policy": scoring_context_policy,
                 "examples": (
                     totals["examples"]
                 ),
@@ -848,6 +877,7 @@ def main():
             "row_type": "overall_summary",
             "task": "OVERALL",
             "model": args.model,
+            "scoring_context_policy": scoring_context_policy,
             "examples": grand_examples,
             "tokens_scored": grand_tokens,
             "avg_nll": overall_avg_nll,
