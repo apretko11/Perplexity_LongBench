@@ -10,6 +10,7 @@ import torch.nn.functional as F
 from datasets import load_dataset
 from tqdm import tqdm
 from transformers import AutoModelForCausalLM, AutoTokenizer
+from longbench_utils import middle_truncate_tokens
 
 
 DEFAULT_LONGBENCH_TASKS = [
@@ -235,20 +236,13 @@ def answer_conditional_ppl(
     for start in range(0, len(answer_ids), answer_stride):
         end = min(start + answer_stride, len(answer_ids))
 
-        # Reserve space for the answer prefix, then middle-truncate only the prompt.
+        # Reserve room for the answer prefix. LongBench keeps the head and tail
+        # of an overlength prompt; only answer tokens contribute to NLL.
         answer_prefix = answer_ids[:end]
         prompt_budget = max_length - len(answer_prefix)
-
-        if prompt_budget > 0 and len(prompt_ids) > prompt_budget:
-            left = (prompt_budget + 1) // 2
-            right = prompt_budget - left
-            window_prompt = prompt_ids[:left]
-            if right:
-                window_prompt += prompt_ids[-right:]
-        elif prompt_budget > 0:
-            window_prompt = prompt_ids
-        else:
-            window_prompt = []
+        window_prompt = middle_truncate_tokens(
+            prompt_ids, max(0, prompt_budget),
+        )
 
         # Model sees the retained prompt plus answer up through the current chunk.
         full_ids = window_prompt + answer_prefix
@@ -314,7 +308,18 @@ def main():
         action="store_true",
         help="Use the tokenizer's native chat template in answer mode only",
     )
-    parser.add_argument("--output-jsonl", default=None, help="Optional per-task JSONL output")
+    parser.add_argument(
+        "--reference-policy",
+        choices=["first", "all"],
+        default="first",
+        help="Answer mode: score a fixed first reference (default) or every distinct reference.",
+    )
+    parser.add_argument("--output-jsonl", default=None, help="Optional per-task summary JSONL output")
+    parser.add_argument(
+        "--examples-output-jsonl",
+        default=None,
+        help="Optional per-example JSONL path. Defaults to <output-jsonl stem>_examples.jsonl.",
+    )
     args = parser.parse_args()
 
     dtype = dtype_from_string(args.dtype)
@@ -324,23 +329,17 @@ def main():
     print(f"Dtype: {args.dtype}")
 
     model, tokenizer = load_model_and_tokenizer(
-        args.model,
-        args.device,
-        dtype,
-        trust_remote_code=args.trust_remote_code,
+        args.model, args.device, dtype, trust_remote_code=args.trust_remote_code,
     )
 
     inferred_max_length = getattr(model.config, "max_position_embeddings", None)
     if inferred_max_length is None:
         inferred_max_length = getattr(tokenizer, "model_max_length", 2048)
-
-    # Some tokenizers set this to an absurd sentinel.
     if inferred_max_length is None or inferred_max_length > 1_000_000:
         inferred_max_length = 2048
 
     max_length = args.max_length if args.max_length is not None else int(inferred_max_length)
     stride = args.stride if args.stride is not None else max_length
-    
     if max_length < 2:
         raise ValueError("max_length must be >= 2")
     if stride <= 0:
@@ -353,15 +352,33 @@ def main():
     print(f"mode: {args.mode}")
     if args.mode == "answer":
         print(f"use_chat_template: {args.use_chat_template}")
+        print(f"reference_policy: {args.reference_policy}")
+
+    out_path = Path(args.output_jsonl) if args.output_jsonl else None
+    examples_path = (
+        Path(args.examples_output_jsonl) if args.examples_output_jsonl
+        else out_path.with_name(out_path.stem + "_examples.jsonl") if out_path
+        else None
+    )
+    if out_path is not None and examples_path is not None:
+        if out_path.resolve() == examples_path.resolve():
+            raise ValueError("Summary and per-example JSONL paths must differ")
 
     out_f = None
-    if args.output_jsonl:
-        out_path = Path(args.output_jsonl)
+    if out_path is not None:
         out_path.parent.mkdir(parents=True, exist_ok=True)
         out_f = out_path.open("w", encoding="utf-8")
 
+    examples_out_f = None
+    if examples_path is not None:
+        examples_path.parent.mkdir(parents=True, exist_ok=True)
+        examples_out_f = examples_path.open("w", encoding="utf-8")
+        print(f"Per-example output: {examples_path}")
+
     grand_nll = 0.0
     grand_tokens = 0
+    grand_example_mean_nll_sum = 0.0
+    grand_examples = 0
     task_rows = []
 
     for task in iter_tasks(args.tasks):
@@ -369,9 +386,9 @@ def main():
         print(f"===== LongBench task: {task} =====")
 
         ds = load_dataset("THUDM/LongBench", task, split=args.split, trust_remote_code=True)
-
         task_nll = 0.0
         task_tokens = 0
+        task_example_mean_nll_sum = 0.0
         n_examples = 0
 
         if args.limit is not None:
@@ -379,114 +396,179 @@ def main():
         else:
             ds_iter = ds
 
-        for ex in tqdm(ds_iter):
+        for example_index, ex in enumerate(tqdm(ds_iter)):
+            reference_results = []
+            original_prompt_tokens = None
+            reference_count_available = 0
+
             if args.mode == "full":
                 text = make_longbench_full_text(ex)
                 nll, n_tokens = full_text_ppl(
-                    model=model,
-                    tokenizer=tokenizer,
-                    text=text,
-                    max_length=max_length,
-                    stride=stride,
+                    model=model, tokenizer=tokenizer, text=text,
+                    max_length=max_length, stride=stride,
                 )
+                example_mean_nll = nll / n_tokens if n_tokens else None
             else:
                 answers = ex.get("answers", [])
                 if not answers:
                     continue
+                reference_count_available = len(answers)
                 prompt = make_longbench_prompt(ex, task)
+                original_prompt_tokens = len(tokenize_prompt(
+                    tokenizer=tokenizer,
+                    prompt=prompt,
+                    use_chat_template=args.use_chat_template,
+                ))
+                selected_indices = (
+                    range(1) if args.reference_policy == "first"
+                    else range(len(answers))
+                )
+                seen_answers = set()
+                for reference_index in selected_indices:
+                    answer = str(answers[reference_index])
+                    if not answer.strip() or answer in seen_answers:
+                        continue
+                    seen_answers.add(answer)
 
-                # LongBench may provide multiple valid references. Score all of
-                # them and keep the reference with the lowest mean token NLL.
-                best = None
-                for answer in answers:
                     candidate_nll, candidate_tokens = answer_conditional_ppl(
-                        model=model,
-                        tokenizer=tokenizer,
-                        prompt=prompt,
-                        answer=str(answer),
-                        max_length=max_length,
-                        stride=stride,
+                        model=model, tokenizer=tokenizer, prompt=prompt,
+                        answer=answer, max_length=max_length, stride=stride,
                         use_chat_template=args.use_chat_template,
                     )
                     if candidate_tokens == 0:
                         continue
 
-                    candidate_avg_nll = candidate_nll / candidate_tokens
-                    if best is None or candidate_avg_nll < best[0]:
-                        best = (candidate_avg_nll, candidate_nll, candidate_tokens)
+                    first_answer_chunk = min(candidate_tokens, stride, max_length - 1)
+                    first_prompt_budget = max_length - first_answer_chunk
+                    reference_results.append({
+                        "reference_index": reference_index,
+                        "reference": answer,
+                        "nll_sum": candidate_nll,
+                        "tokens_scored": candidate_tokens,
+                        "avg_nll": candidate_nll / candidate_tokens,
+                        "perplexity": math.exp(candidate_nll / candidate_tokens),
+                        "prompt_tokens_retained_first_chunk": min(
+                            original_prompt_tokens, first_prompt_budget,
+                        ),
+                        "prompt_middle_truncated_first_chunk": (
+                            original_prompt_tokens > first_prompt_budget
+                        ),
+                    })
 
-                if best is None:
+                if not reference_results:
                     continue
-
-                _, nll, n_tokens = best
+                nll = sum(r["nll_sum"] for r in reference_results)
+                n_tokens = sum(r["tokens_scored"] for r in reference_results)
+                # Equal weight for each distinct reference *within this example*.
+                # Unlike pooled token NLL, this is not ordinary token-weighted PPL.
+                example_mean_nll = sum(
+                    r["avg_nll"] for r in reference_results
+                ) / len(reference_results)
 
             if n_tokens == 0:
                 continue
 
             task_nll += nll
             task_tokens += n_tokens
+            task_example_mean_nll_sum += example_mean_nll
             n_examples += 1
+
+            if examples_out_f is not None:
+                example_result = {
+                    "row_type": "example",
+                    "task": task,
+                    "example_index": example_index,
+                    "example_id": ex.get("_id"),
+                    "model": args.model,
+                    "mode": args.mode,
+                    "reference_policy": (
+                        args.reference_policy if args.mode == "answer" else None
+                    ),
+                    "reference_count_available": reference_count_available,
+                    "reference_count_scored": len(reference_results),
+                    "nll_sum": nll,
+                    "tokens_scored": n_tokens,
+                    "avg_nll": nll / n_tokens,
+                    "perplexity": math.exp(nll / n_tokens),
+                    "reference_macro_avg_nll": example_mean_nll,
+                    "reference_macro_perplexity": math.exp(example_mean_nll),
+                    "prompt_tokens_original": original_prompt_tokens,
+                    "max_length": max_length,
+                    "stride": stride,
+                    "references": reference_results,
+                }
+                examples_out_f.write(json.dumps(example_result, ensure_ascii=False) + "\n")
+                examples_out_f.flush()
 
         if task_tokens == 0:
             print(f"Skipping task {task}: no scored tokens.")
             continue
 
+        # Standard perplexity: total NLL / total scored tokens.
         task_avg_nll = task_nll / task_tokens
         task_ppl = math.exp(task_avg_nll)
+        # Supplementary metric: first mean over references, then examples.
+        # Every example contributes equally regardless of reference lengths/count.
+        task_example_macro_nll = task_example_mean_nll_sum / n_examples
 
         row = {
             "task": task,
             "mode": args.mode,
             "use_chat_template": args.use_chat_template if args.mode == "answer" else False,
+            "reference_policy": args.reference_policy if args.mode == "answer" else None,
             "examples": n_examples,
             "tokens_scored": task_tokens,
             "avg_nll": task_avg_nll,
             "perplexity": task_ppl,
+            "example_macro_avg_nll": task_example_macro_nll,
+            "example_macro_perplexity": math.exp(task_example_macro_nll),
         }
         task_rows.append(row)
 
         print(json.dumps(row, indent=2))
-
         if out_f is not None:
             out_f.write(json.dumps(row) + "\n")
             out_f.flush()
 
         grand_nll += task_nll
         grand_tokens += task_tokens
+        grand_example_mean_nll_sum += task_example_mean_nll_sum
+        grand_examples += n_examples
 
     if grand_tokens == 0:
         raise RuntimeError("No scored tokens across all tasks.")
 
-    # Micro PPL is token-weighted across all tasks (the previous OVERALL metric).
     micro_avg_nll = grand_nll / grand_tokens
     micro_ppl = math.exp(micro_avg_nll)
-
-    # Macro PPL gives each task equal weight by averaging task mean NLLs first.
     macro_avg_nll = sum(r["avg_nll"] for r in task_rows) / len(task_rows)
     macro_ppl = math.exp(macro_avg_nll)
+    example_macro_avg_nll = grand_example_mean_nll_sum / grand_examples
 
     overall = {
         "task": "OVERALL",
         "mode": args.mode,
         "use_chat_template": args.use_chat_template if args.mode == "answer" else False,
+        "reference_policy": args.reference_policy if args.mode == "answer" else None,
         "examples": sum(r["examples"] for r in task_rows),
         "tokens_scored": grand_tokens,
-        # Keep the old keys as aliases for backward compatibility; they are micro.
+        # Preserve the historical overall micro keys.
         "avg_nll": micro_avg_nll,
         "perplexity": micro_ppl,
         "micro_avg_nll": micro_avg_nll,
         "micro_perplexity": micro_ppl,
         "macro_avg_nll": macro_avg_nll,
         "macro_perplexity": macro_ppl,
+        "example_macro_avg_nll": example_macro_avg_nll,
+        "example_macro_perplexity": math.exp(example_macro_avg_nll),
     }
-
     print()
     print("===== OVERALL =====")
     print(json.dumps(overall, indent=2))
-
     if out_f is not None:
         out_f.write(json.dumps(overall) + "\n")
         out_f.close()
+    if examples_out_f is not None:
+        examples_out_f.close()
 
 
 if __name__ == "__main__":

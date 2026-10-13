@@ -63,7 +63,18 @@ The script:
 5. Uses stride-based answer chunking when the answer is longer than one scoring window.
 6. Sums NLL and token counts across chunks before calculating perplexity.
 
-The current implementation uses the first reference in `answers`.
+The default `--reference-policy first` scores the same fixed `answers[0]` for every model.
+`--reference-policy all` scores every **distinct** supplied reference. The ordinary
+`avg_nll` and `perplexity` remain token-weighted; `example_macro_avg_nll` and
+`example_macro_perplexity` first average normalized NLL across references within
+each example, then average across examples. The latter are supplementary
+reference-formulation diagnostics, **not** measures of generated answer accuracy.
+
+When `--output-jsonl results/example.jsonl` is supplied, detailed per-example
+records are also written to `results/example_examples.jsonl`. Use
+`--examples-output-jsonl PATH` to override this path without changing the
+backward-compatible task-summary JSONL output.
+
 
 For raw/base models, the prompt is used directly.
 
