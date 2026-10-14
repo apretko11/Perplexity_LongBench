@@ -1,0 +1,16 @@
+{"model": "adpretko/celerity-504m-8k-ad0p8-ild", "task": "2wikimqa", "nll_sum": 79.25589656829834, "tokens_scored": 24, "examples": 5, "avg_nll": 3.3023290236790976, "perplexity": 27.175858490066897}
+{"model": "adpretko/celerity-504m-8k-ad0p8-ild", "task": "gov_report", "nll_sum": 7603.15119934082, "tokens_scored": 3686, "examples": 5, "avg_nll": 2.062710580396316, "perplexity": 7.867265791472002}
+{"model": "adpretko/celerity-504m-8k-ad0p8-ild", "task": "hotpotqa", "nll_sum": 106.41289329528809, "tokens_scored": 16, "examples": 5, "avg_nll": 6.650805830955505, "perplexity": 773.4073100429839}
+{"model": "adpretko/celerity-504m-8k-ad0p8-ild", "task": "lcc", "nll_sum": 194.19622993469238, "tokens_scored": 57, "examples": 5, "avg_nll": 3.406951402363024, "perplexity": 30.17311820625355}
+{"model": "adpretko/celerity-504m-8k-ad0p8-ild", "task": "multi_news", "nll_sum": 4259.585578918457, "tokens_scored": 1420, "examples": 5, "avg_nll": 2.9997081541679274, "perplexity": 20.079675898251143}
+{"model": "adpretko/celerity-504m-8k-ad0p8-ild", "task": "multifieldqa_en", "nll_sum": 136.6977596282959, "tokens_scored": 85, "examples": 5, "avg_nll": 1.608208936803481, "perplexity": 4.993858896253279}
+{"model": "adpretko/celerity-504m-8k-ad0p8-ild", "task": "musique", "nll_sum": 84.15805149078369, "tokens_scored": 22, "examples": 5, "avg_nll": 3.825365976853804, "perplexity": 45.84957718018809}
+{"model": "adpretko/celerity-504m-8k-ad0p8-ild", "task": "narrativeqa", "nll_sum": 142.1859769821167, "tokens_scored": 23, "examples": 5, "avg_nll": 6.181998999222465, "perplexity": 483.95842255875573}
+{"model": "adpretko/celerity-504m-8k-ad0p8-ild", "task": "passage_count", "nll_sum": 31.006561279296875, "tokens_scored": 5, "examples": 5, "avg_nll": 6.201312255859375, "perplexity": 493.39607835600134}
+{"model": "adpretko/celerity-504m-8k-ad0p8-ild", "task": "passage_retrieval_en", "nll_sum": 94.82119941711426, "tokens_scored": 15, "examples": 5, "avg_nll": 6.321413294474284, "perplexity": 556.358735804278}
+{"model": "adpretko/celerity-504m-8k-ad0p8-ild", "task": "qasper", "nll_sum": 132.97252655029297, "tokens_scored": 52, "examples": 5, "avg_nll": 2.5571639721210184, "perplexity": 12.899182949594708}
+{"model": "adpretko/celerity-504m-8k-ad0p8-ild", "task": "qmsum", "nll_sum": 1782.8337707519531, "tokens_scored": 480, "examples": 5, "avg_nll": 3.714237022399902, "perplexity": 41.027272249933425}
+{"model": "adpretko/celerity-504m-8k-ad0p8-ild", "task": "repobench-p", "nll_sum": 167.18194389343262, "tokens_scored": 77, "examples": 5, "avg_nll": 2.171194076538086, "perplexity": 8.768748348576661}
+{"model": "adpretko/celerity-504m-8k-ad0p8-ild", "task": "samsum", "nll_sum": 539.3966255187988, "tokens_scored": 170, "examples": 5, "avg_nll": 3.1729213265811698, "perplexity": 23.87713548061572}
+{"model": "adpretko/celerity-504m-8k-ad0p8-ild", "task": "trec", "nll_sum": 51.124831199645996, "tokens_scored": 10, "examples": 5, "avg_nll": 5.112483119964599, "perplexity": 166.08224541463244}
+{"model": "adpretko/celerity-504m-8k-ad0p8-ild", "task": "triviaqa", "nll_sum": 82.8228497505188, "tokens_scored": 20, "examples": 5, "avg_nll": 4.14114248752594, "perplexity": 62.874613892477576}
