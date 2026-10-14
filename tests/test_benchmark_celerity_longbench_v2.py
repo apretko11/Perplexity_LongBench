@@ -215,5 +215,90 @@ class BatchTests(unittest.TestCase):
         self.assertTrue(digest)
 
 
+    def test_frozen_8k_experiment_reuses_4k_revisions_and_examples(self):
+        rows = [
+            dict(_id='id0', context='alpha', input='Q', answers=['first'], length='4k'),
+            dict(_id='id1', context='beta', input='Q', answers=['second'], length='4k'),
+            dict(_id='id2', context='gamma', input='Q', answers=['third'], length='4k'),
+        ]
+        cases_digest = pilot.sha_json([
+            (str(rows[i]['_id']), str(rows[i]['answers'][0])) for i in [0, 2]
+        ])
+        specs = [
+            dict(model=f'adpretko/celerity-271m-{size}k-ad0p0',
+                 revision=str(size) * 40, trained_context_tokens=size * 1024)
+            for size in (4, 8, 16)
+        ]
+        baseline_args = SimpleNamespace(
+            order='recent', model_offset=0, limit_models=0,
+            tasks=['narrativeqa'], examples_per_task=2, seed=42,
+            sampling='random', context_mode='common', common_context=4096,
+            answer_stride=128, dtype='bfloat16',
+        )
+        baseline = {
+            'version': 2, 'settings': pilot.settings(baseline_args),
+            'models': specs, 'total_celerity_repositories': 3,
+            'excluded_models': [], 'longbench_revision': 'frozen-dataset',
+            'sample_indices': {'narrativeqa': [0, 2]},
+            'sample_id_digest': {'narrativeqa': cases_digest},
+        }
+        with tempfile.TemporaryDirectory() as td:
+            src = Path(td) / '4k_manifest.json'
+            dst = Path(td) / '8k_manifest.json'
+            pilot.atomic_json(src, baseline)
+            args = SimpleNamespace(**vars(baseline_args))
+            args.common_context = 8192
+            args.source_manifest = src
+            args.min_trained_context = 8192
+            args.max_run_models = 1  # A pilot limit must not change frozen settings.
+            frozen_pilot_settings = pilot.settings(args)
+            args.max_run_models = 0
+            self.assertEqual(frozen_pilot_settings, pilot.settings(args))
+            with patch.object(pilot, 'discover', side_effect=AssertionError('must not rediscover HF')):
+                doc = pilot.freeze_manifest(dst, None, args)
+            self.assertEqual([m['trained_context_tokens'] for m in doc['models']], [8192, 16384])
+            self.assertEqual([m['revision'] for m in doc['models']], [str(8)*40, str(16)*40])
+            self.assertEqual(doc['sample_indices'], baseline['sample_indices'])
+            self.assertEqual(doc['sample_id_digest'], baseline['sample_id_digest'])
+            self.assertEqual(doc['longbench_revision'], baseline['longbench_revision'])
+            self.assertEqual(len(doc['models']), 2)
+            self.assertEqual(pilot.freeze_manifest(dst, None, args)['models'], doc['models'])
+            with patch.object(pilot, 'load_dataset', return_value=FakeDataset(rows)):
+                cases = pilot.select_cases(doc, dst)
+            self.assertEqual([c['example_index'] for c in cases], [0, 2])
+            self.assertEqual([c['answer'] for c in cases], ['first', 'third'])
+            baseline['extra'] = 'tampered'
+            pilot.atomic_json(src, baseline)
+            with self.assertRaisesRegex(ValueError, 'different settings'):
+                pilot.freeze_manifest(dst, None, args)
+
+    def test_frozen_8k_experiment_rejects_changed_scoring_policy(self):
+        baseline_args = SimpleNamespace(
+            order='recent', model_offset=0, limit_models=0,
+            tasks=['narrativeqa'], examples_per_task=1, seed=42,
+            sampling='random', context_mode='common', common_context=4096,
+            answer_stride=128, dtype='bfloat16',
+        )
+        with tempfile.TemporaryDirectory() as td:
+            src = Path(td) / 'source.json'
+            doc = dict(
+                version=2, settings=pilot.settings(baseline_args),
+                models=[dict(model='adpretko/celerity-504m-8k-ad0p0',
+                             revision='f'*40, trained_context_tokens=8192)],
+                total_celerity_repositories=1, excluded_models=[],
+                longbench_revision='frozen',
+                sample_indices={'narrativeqa': [0]},
+                sample_id_digest={'narrativeqa': 'a'*64},
+            )
+            pilot.atomic_json(src, doc)
+            args = SimpleNamespace(**vars(baseline_args))
+            args.source_manifest = src
+            args.min_trained_context = 8192
+            args.common_context = 8192
+            args.dtype = 'float16'
+            with self.assertRaisesRegex(ValueError, 'dtype'):
+                pilot.freeze_manifest(Path(td) / 'new.json', None, args)
+
+
 if __name__ == '__main__':
     unittest.main()

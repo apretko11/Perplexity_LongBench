@@ -16,6 +16,7 @@ Examples:
   python benchmark_celerity_longbench_v2.py --list-only --output-dir results/pilot10_4k
   python benchmark_celerity_longbench_v2.py --output-dir results/pilot10_4k --device cuda --dtype float16
   python benchmark_celerity_longbench_v2.py --context-mode native --output-dir results/pilot10_native
+  python benchmark_celerity_longbench_v2.py --source-manifest experiments/celerity_all_4k_bf16/manifest.json --min-trained-context 8192 --context-mode common --common-context 8192 --dtype bfloat16 --limit-models 0 --output-dir results/celerity_all_8k_bf16 --list-only
 """
 from __future__ import annotations
 
@@ -125,7 +126,7 @@ def discover(api, args) -> tuple[list[dict], list[dict], int]:
 
 
 def settings(args) -> dict:
-    return {
+    cfg = {
         "owner": OWNER,
         "model_prefix": PREFIX,
         "model_order": args.order, "model_offset": args.model_offset,
@@ -138,15 +139,98 @@ def settings(args) -> dict:
         "reference_policy": "first", "use_chat_template": False,
         "scorer": SCORED_BY, "truncation_policy": "longbench_utils.middle_truncate_tokens",
     }
+    # Only scientific configuration belongs in the frozen manifest. A pilot's
+    # --max-run-models is intentionally NOT recorded, so it can be resumed.
+    minimum = getattr(args, "min_trained_context", 0)
+    if minimum:
+        cfg["min_trained_context"] = minimum
+    source = getattr(args, "source_manifest", None)
+    if source is not None:
+        cfg["source_manifest_sha256"] = hashlib.sha256(Path(source).read_bytes()).hexdigest()
+    return cfg
+
+
+def manifest_from_source(source_path: Path, cfg: dict, args) -> dict:
+    """Create the new experiment exclusively from archived immutable inputs.
+
+    Preserve checkpoint revisions, dataset revision, exact sample indices, and
+    sample identity digests. Only filtering and evaluation context can change.
+    """
+    source = json.loads(source_path.read_text(encoding="utf-8"))
+    original = source.get("settings", {})
+    if (source.get("version") != 2 or original.get("context_mode") != "common"
+            or original.get("common_context") != 4096):
+        raise ValueError("Source must be the completed version-2 common-4K manifest")
+
+    unchanged = (
+        "owner", "model_prefix", "model_order", "model_offset", "limit_models",
+        "tasks", "examples_per_task", "seed", "sampling", "answer_stride",
+        "dtype", "dataset", "reference_policy", "use_chat_template",
+        "scorer", "truncation_policy",
+    )
+    for key in unchanged:
+        if original.get(key) != cfg.get(key):
+            raise ValueError(f"Source manifest disagrees on {key}")
+
+    if args.context_mode != "common" or args.min_trained_context < args.common_context:
+        raise ValueError("Sourced run needs common context and minimum trained context >= evaluation context")
+    if not source.get("longbench_revision") or not source.get("models"):
+        raise ValueError("Source manifest has no pinned dataset revision or model list")
+
+    sample_indices = source.get("sample_indices", {})
+    sample_id_digest = source.get("sample_id_digest", {})
+    for task in cfg["tasks"]:
+        indices, digest = sample_indices.get(task), sample_id_digest.get(task)
+        if (not isinstance(indices, list) or len(indices) != cfg["examples_per_task"]
+                or any(type(i) is not int or i < 0 for i in indices)
+                or not isinstance(digest, str)
+                or re.fullmatch(r"[0-9a-f]{64}", digest) is None):
+            raise ValueError(f"Source manifest lacks frozen samples/digest for {task}")
+
+    # Revisions come directly from the 4K manifest, never current HF HEAD.
+    models = [dict(m) for m in source["models"]
+              if m["trained_context_tokens"] >= args.min_trained_context]
+    if not models:
+        raise ValueError("No models meet the minimum trained context")
+    if any(m["trained_context_tokens"] < args.common_context for m in models):
+        raise ValueError("Selected model context shorter than evaluation context")
+    if len({m["model"] for m in models}) != len(models):
+        raise ValueError("Source manifest contains duplicate model IDs")
+
+    return {
+        "version": 2,
+        "created_utc": datetime.now(timezone.utc).isoformat(),
+        "settings": cfg,
+        "models": models,
+        "total_celerity_repositories": source["total_celerity_repositories"],
+        "excluded_models": source.get("excluded_models", []),
+        "longbench_revision": source["longbench_revision"],
+        "sample_indices": {task: list(sample_indices[task]) for task in cfg["tasks"]},
+        "sample_id_digest": {task: sample_id_digest[task] for task in cfg["tasks"]},
+        "source_manifest": str(source_path),
+        "source_model_count": len(source["models"]),
+    }
 
 
 def freeze_manifest(path: Path, api, args) -> dict:
     cfg = settings(args)
+    source_path = getattr(args, "source_manifest", None)
+    if source_path is not None and path.resolve() == Path(source_path).resolve():
+        raise ValueError("Source and output manifest must be different files")
     if path.exists():
         doc = json.loads(path.read_text(encoding="utf-8"))
         if doc["settings"] != cfg:
             raise ValueError(f"{path} was created with different settings; use another output directory")
+        if source_path is not None:
+            expected = manifest_from_source(Path(source_path), cfg, args)
+            for key in ("models", "longbench_revision", "sample_indices", "sample_id_digest"):
+                if doc.get(key) != expected[key]:
+                    raise ValueError(f"{path}: {key} diverged from the frozen source")
         print(f"Reusing frozen manifest: {path}")
+        return doc
+    if source_path is not None:
+        doc = manifest_from_source(Path(source_path), cfg, args)
+        atomic_json(path, doc)
         return doc
     models, excluded, total = discover(api, args)
     rev = api.dataset_info(DATASET).sha
@@ -176,6 +260,8 @@ def select_cases(manifest: dict, path: Path) -> list[dict]:
         ds = load_dataset(DATASET, task, split="test", trust_remote_code=True,
                           revision=manifest["longbench_revision"])
         if task not in manifest["sample_indices"]:
+            if cfg.get("source_manifest_sha256"):
+                raise RuntimeError(f"Missing frozen sample indices for {task}; refusing to resample")
             valid = [i for i, row in enumerate(ds)
                      if row.get("answers") and str(row["answers"][0]).strip()]
             take = min(cfg["examples_per_task"], len(valid))
@@ -425,6 +511,12 @@ def parse_args() -> argparse.Namespace:
     p.add_argument("--seed", type=int, default=42)
     p.add_argument("--context-mode", choices=["common", "native"], default="common")
     p.add_argument("--common-context", type=int, default=4096)
+    p.add_argument("--source-manifest", type=Path, default=None,
+                   help="Copy frozen model revisions and exact examples from a 4K manifest")
+    p.add_argument("--min-trained-context", type=int, default=0,
+                   help="With --source-manifest, exclude models trained below this length")
+    p.add_argument("--max-run-models", type=int, default=0,
+                   help="Maximum new model attempts this invocation; 0 = all (safe pilots)")
     p.add_argument("--answer-stride", type=int, default=128)
     p.add_argument("--device", default="cuda")
     p.add_argument("--dtype", choices=list(DTYPES), default="float16")
@@ -448,6 +540,17 @@ def parse_args() -> argparse.Namespace:
         p.error("Model limits/offset must be >=0 and example count >=1")
     if args.common_context < 2 or args.answer_stride < 1 or args.progress_every < 1:
         p.error("Invalid context, stride, or progress frequency")
+    if args.min_trained_context < 0 or args.max_run_models < 0:
+        p.error("--min-trained-context and --max-run-models must be >= 0")
+    if args.source_manifest is not None:
+        if not args.source_manifest.is_file():
+            p.error(f"Source manifest not found: {args.source_manifest}")
+        if args.context_mode != "common" or args.min_trained_context < args.common_context:
+            p.error("Sourced runs need common context and --min-trained-context >= --common-context")
+        if args.model_offset != 0 or args.limit_models != 0:
+            p.error("Sourced runs need --limit-models 0 and --model-offset 0; use --max-run-models for a pilot")
+    elif args.min_trained_context:
+        p.error("--min-trained-context requires --source-manifest")
     if args.device.startswith("cuda") and not torch.cuda.is_available() and not args.list_only:
         p.error("CUDA unavailable; use a GPU environment or --device cpu --dtype float32")
     return args
@@ -473,11 +576,16 @@ def main() -> int:
     print(f"Fixed LongBench sample: {len(cases)} examples across {len(args.tasks)} tasks")
     done = completed_models(out, manifest)
     failures = 0
+    attempted = 0
     for i, spec in enumerate(models, 1):
         name = spec["model"]
         if name in done and not args.force:
             print(f"[{i}/{len(models)}] SKIP (already successful): {name}")
             continue
+        if args.max_run_models and attempted >= args.max_run_models:
+            print(f"Reached --max-run-models {args.max_run_models}; resume without this flag")
+            break
+        attempted += 1
         print(f"[{i}/{len(models)}] START {name}", flush=True)
         result = run_one(spec, cases, args, out)
         save_summary(out, result)
