@@ -83,10 +83,20 @@ def verify_gold(summary_path: Path, examples_path: Path | None = None) -> dict:
                 raise ValueError(f"{key}: missing reference records")
             for i, ref in enumerate(refs):
                 validate_score(ref, f"reference {key}:{i}")
-            close(r["nll_sum"], sum(float(x["nll_sum"]) for x in refs), str(key) + ".reference_nll")
-            if int(r["tokens_scored"]) != sum(int(x["tokens_scored"]) for x in refs):
+            if r.get("reference_policy") == "best":
+                chosen = min(refs, key=lambda x: float(x["avg_nll"]))
+                expected_nll = float(chosen["nll_sum"])
+                expected_tokens = int(chosen["tokens_scored"])
+                ref_macro = float(chosen["avg_nll"])
+                if r.get("selected_reference_index") != chosen["reference_index"]:
+                    raise ValueError(f"{key}: incorrect best reference index")
+            else:
+                expected_nll = sum(float(x["nll_sum"]) for x in refs)
+                expected_tokens = sum(int(x["tokens_scored"]) for x in refs)
+                ref_macro = sum(float(x["avg_nll"]) for x in refs) / len(refs)
+            close(r["nll_sum"], expected_nll, str(key) + ".reference_nll")
+            if int(r["tokens_scored"]) != expected_tokens:
                 raise ValueError(f"{key}: reference token count mismatch")
-            ref_macro = sum(float(x["avg_nll"]) for x in refs) / len(refs)
             close(r["reference_macro_avg_nll"], ref_macro, str(key) + ".reference_macro")
         per_task[r["task"]].append(r)
     expected_tasks = set(per_task)

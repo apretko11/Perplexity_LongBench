@@ -11,7 +11,7 @@ EXPERIMENTS = ROOT / "experiments"
 OUTPUT = ROOT / "results" / "context_analysis"
 
 CONTEXTS = {
-    4096: "4k",
+    4096: "4k_a6000",
     8192: "8k",
     16384: "16k",
 }

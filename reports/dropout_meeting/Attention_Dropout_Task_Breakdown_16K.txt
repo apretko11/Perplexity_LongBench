@@ -1,0 +1,84 @@
+ATTENTION DROPOUT: TASK-LEVEL LONGBENCH RESULTS (16K)
+
+SUMMARY
+
+The most interesting result is the 906M model trained and evaluated at 16K with attention dropout 0.2. Compared with its zero-dropout counterpart, it improves perplexity on several retrieval and QA tasks: Passage Retrieval (−71.14%), TriviaQA (−33.74%), Musique (−33.63%), and NarrativeQA (−29.35%). Its worst five tasks exhibit much smaller degradations, with Passage Count increasing by 7.08%. This helps explain why the 906M model improves both pooled and task-balanced perplexity.
+
+The 271M and 504M results are considerably less consistent. Both models benefit on certain tasks, but suffer substantial degradation on others. For example, the 271M model improves MultifieldQA (−11.52%) while worsening Passage Count (+263.74%) and TREC (+161.92%). The 504M model improves Passage Retrieval (−41.70%) and Musique (−35.26%), but worsens TREC (+159.54%). These uneven effects help explain why dropout's benefits can disappear—or reverse—when we give each LongBench task equal weight.
+
+Pooled perplexity weights each task by its gold-answer token count; task-balanced perplexity assigns equal weight to all 16 tasks in per-token negative log-likelihood space. Short-answer tasks can therefore matter much more to the balanced metric. These are descriptive results from five examples per task, evaluating the first reference answer rather than free-generation accuracy.
+
+tl;dr
+
+Attention dropout changes performance unevenly across tasks, and the distribution of those effects depends strongly on model architecture.
+
+1. Moderate attention dropout can improve long-context gold-answer perplexity, particularly for 906M models. The 906M model trained and evaluated at 16K shows improvements under both pooled and task-balanced metrics.
+2. The effect is strongly architecture- and task-dependent. The smaller models show substantial degradation on certain tasks, including TREC and Passage Count. In contrast, the 906M model shows large improvements across several retrieval and QA tasks.
+3. The aggregation method materially changes the conclusions. Token-weighted perplexity and equal-task-weighted perplexity can disagree because dropout's effects are unevenly distributed across tasks.
+
+QUALIFICATIONS:
+
+1. These comparisons use just five examples per task, so very large task-level percentage changes need cautious interpretation.
+2. A +264% increase in perplexity on one task is dramatic, but isn't necessarily a correspondingly large contribution to overall perplexity.
+3. These are matched-checkpoint-family comparisons, not evidence of improved generation accuracy.
+
+================================================================
+RAW TERMINAL OUTPUT — analysis/dropout_task_breakdown.py
+================================================================
+
+
+============================================================
+271M | AD 0.2 vs. AD 0.0 | 16K
+============================================================
+
+Five tasks benefiting most:
+  multifieldqa_en             -11.52%
+  narrativeqa                  -8.06%
+  multi_news                   -7.18%
+  hotpotqa                     -6.42%
+  2wikimqa                     -6.42%
+
+Five tasks benefiting least:
+  lcc                         +12.73%
+  triviaqa                    +18.78%
+  passage_retrieval_en        +41.41%
+  trec                       +161.92%
+  passage_count              +263.74%
+
+============================================================
+504M | AD 0.2 vs. AD 0.0 | 16K
+============================================================
+
+Five tasks benefiting most:
+  passage_retrieval_en        -41.70%
+  musique                     -35.26%
+  repobench-p                 -21.97%
+  hotpotqa                     -8.06%
+  samsum                       +0.71%
+
+Five tasks benefiting least:
+  2wikimqa                    +12.78%
+  passage_count               +18.83%
+  qasper                      +22.06%
+  triviaqa                    +27.42%
+  trec                       +159.54%
+
+============================================================
+906M | AD 0.2 vs. AD 0.0 | 16K
+============================================================
+
+Five tasks benefiting most:
+  passage_retrieval_en        -71.14%
+  triviaqa                    -33.74%
+  musique                     -33.63%
+  narrativeqa                 -29.35%
+  2wikimqa                    -24.04%
+
+Five tasks benefiting least:
+  gov_report                   -1.45%
+  trec                         +0.17%
+  samsum                       +1.57%
+  multifieldqa_en              +6.35%
+  passage_count                +7.08%
+
+Saved: /home/alexanderpretko/Perplexity_LongBench/results/dropout_meeting/dropout_task_breakdown_16k.csv

@@ -310,9 +310,9 @@ def main():
     )
     parser.add_argument(
         "--reference-policy",
-        choices=["first", "all"],
+        choices=["first", "all", "best"],
         default="first",
-        help="Answer mode: score a fixed first reference (default) or every distinct reference.",
+        help="Answer mode: first reference (default), all references, or easiest reference by mean NLL/token.",
     )
     parser.add_argument("--output-jsonl", default=None, help="Optional per-task summary JSONL output")
     parser.add_argument(
@@ -398,6 +398,7 @@ def main():
 
         for example_index, ex in enumerate(tqdm(ds_iter)):
             reference_results = []
+            selected_reference_index = None
             original_prompt_tokens = None
             reference_count_available = 0
 
@@ -457,13 +458,23 @@ def main():
 
                 if not reference_results:
                     continue
-                nll = sum(r["nll_sum"] for r in reference_results)
-                n_tokens = sum(r["tokens_scored"] for r in reference_results)
-                # Equal weight for each distinct reference *within this example*.
-                # Unlike pooled token NLL, this is not ordinary token-weighted PPL.
-                example_mean_nll = sum(
-                    r["avg_nll"] for r in reference_results
-                ) / len(reference_results)
+                if args.reference_policy == "best":
+                    # Reference with minimum mean NLL/token (not minimum total
+                    # NLL). Exact ties select the earlier original reference.
+                    chosen = min(reference_results, key=lambda r: r["avg_nll"])
+                    nll = chosen["nll_sum"]
+                    n_tokens = chosen["tokens_scored"]
+                    example_mean_nll = chosen["avg_nll"]
+                    selected_reference_index = chosen["reference_index"]
+                else:
+                    # Preserve legacy 'first' and 'all' aggregation exactly.
+                    nll = sum(r["nll_sum"] for r in reference_results)
+                    n_tokens = sum(r["tokens_scored"] for r in reference_results)
+                    example_mean_nll = sum(
+                        r["avg_nll"] for r in reference_results
+                    ) / len(reference_results)
+                    if args.reference_policy == "first":
+                        selected_reference_index = reference_results[0]["reference_index"]
 
             if n_tokens == 0:
                 continue
@@ -486,6 +497,7 @@ def main():
                     ),
                     "reference_count_available": reference_count_available,
                     "reference_count_scored": len(reference_results),
+                    "selected_reference_index": selected_reference_index,
                     "nll_sum": nll,
                     "tokens_scored": n_tokens,
                     "avg_nll": nll / n_tokens,

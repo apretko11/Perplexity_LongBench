@@ -1,0 +1,300 @@
+LONGBENCH TASK BREAKDOWN: AD RATES AND ILD VS ZERO-DROPOUT BASELINE (16K)
+Every treatment is compared with the same AD 0.0 baseline at matched size, train context, and evaluation context.
+ILD comparisons include an attention-dropout-rate change AND ILD; they do not isolate the incremental ILD effect.
+Negative change means the treatment has lower gold-answer perplexity.
+Per-task PPL values use 5 examples each; results are descriptive.
+
+The six heatmaps reinforce the finding that attention dropout's effectiveness depends strongly on model size, dropout configuration, and downstream task. Across the 16K-trained models, the 906M architecture shows the most consistently favorable results relative to the no-dropout baseline, particularly on retrieval and question-answering tasks. For example, standard attention dropout at 0.2 reduces gold-answer perplexity on Passage Retrieval by 71.1%, Musique by 33.6%, and TriviaQA by 33.7%. Several ILD configurations also produce substantial improvements for 906M, although the benefits vary across tasks and dropout rates. In contrast, the 271M and 504M architectures frequently experience large degradations on TREC and Passage Count, even when other tasks improve. Notably, the 504M models often benefit from standard attention dropout on Passage Retrieval but can deteriorate substantially with ILD, indicating that dropout placement matters alongside dropout probability. Overall, these results suggest that moderate attention dropout can improve long-context reference-answer perplexity, particularly for the larger architecture, but neither higher dropout rates nor ILD consistently outperform standard attention dropout. All comparisons use the same zero-dropout baseline within each model size, with five LongBench examples per task; the findings should therefore be treated as descriptive rather than definitive evidence of improved downstream accuracy.
+
+The six task-weighting figures show that attention dropout's apparent effectiveness depends strongly on model size and how LongBench tasks are aggregated. For the 271M models, standard attention dropout (0.1–0.4) improves pooled perplexity by approximately 1.4–2.7%, but worsens task-balanced perplexity by 9–19%. This discrepancy arises because improvements on long-answer tasks, particularly MultiNews, QMSum, and GovReport, can outweigh substantial degradations on shorter-answer tasks such as TREC and Passage Count when results are weighted by answer-token count. The 504M models exhibit similarly inconsistent behavior, with most dropout configurations worsening both metrics. In contrast, the 906M models demonstrate improvements in task-balanced perplexity across all six configurations, ranging from approximately 7.6% to 17.4%, while also improving or approximately preserving pooled perplexity. These improvements are distributed across several tasks, particularly retrieval and question-answering benchmarks, rather than being driven exclusively by long-answer tasks. Notably, ILD does not universally outperform standard attention dropout, and increasing dropout probability does not consistently improve results. Overall, the figures reinforce that dropout effectiveness is architecture- and task-dependent, with the most robust improvements observed in the 906M models. These findings remain preliminary given the small sample of five examples per LongBench task.
+
+===========================================================================
+ATTENTION DROPOUT 0.1 VS. NO DROPOUT
+===========================================================================
+
+271M | pooled PPL: -1.43% | task-balanced PPL: +19.40%
+  passage_retrieval_en         +105.69%  delta NLL/token: +0.721182  answer tokens: 15
+  musique                       +16.12%  delta NLL/token: +0.149447  answer tokens: 22
+  narrativeqa                   -20.43%  delta NLL/token: -0.228556  answer tokens: 23
+  repobench-p                   +13.04%  delta NLL/token: +0.122558  answer tokens: 77
+  2wikimqa                       -5.67%  delta NLL/token: -0.058372  answer tokens: 24
+  hotpotqa                       +4.97%  delta NLL/token: +0.048468  answer tokens: 16
+  multi_news                     -6.87%  delta NLL/token: -0.071157  answer tokens: 1420
+  qmsum                          -2.80%  delta NLL/token: -0.028449  answer tokens: 480
+  lcc                           +27.57%  delta NLL/token: +0.243519  answer tokens: 57
+  gov_report                     -0.74%  delta NLL/token: -0.007426  answer tokens: 3686
+  triviaqa                       +8.10%  delta NLL/token: +0.077858  answer tokens: 20
+  multifieldqa_en                -9.62%  delta NLL/token: -0.101150  answer tokens: 85
+  samsum                         +1.14%  delta NLL/token: +0.011357  answer tokens: 170
+  qasper                        +30.14%  delta NLL/token: +0.263410  answer tokens: 52
+  passage_count                +116.90%  delta NLL/token: +0.774264  answer tokens: 5
+  trec                         +150.82%  delta NLL/token: +0.919585  answer tokens: 10
+
+504M | pooled PPL: -0.52% | task-balanced PPL: +2.74%
+  passage_retrieval_en          -45.81%  delta NLL/token: -0.612622  answer tokens: 15
+  musique                       -18.43%  delta NLL/token: -0.203719  answer tokens: 22
+  narrativeqa                    -0.49%  delta NLL/token: -0.004899  answer tokens: 23
+  repobench-p                   -17.46%  delta NLL/token: -0.191880  answer tokens: 77
+  2wikimqa                       +8.53%  delta NLL/token: +0.081875  answer tokens: 24
+  hotpotqa                      -10.48%  delta NLL/token: -0.110706  answer tokens: 16
+  multi_news                     +2.18%  delta NLL/token: +0.021589  answer tokens: 1420
+  qmsum                          +0.23%  delta NLL/token: +0.002306  answer tokens: 480
+  lcc                            -4.49%  delta NLL/token: -0.045970  answer tokens: 57
+  gov_report                     -1.62%  delta NLL/token: -0.016377  answer tokens: 3686
+  triviaqa                       -7.79%  delta NLL/token: -0.081136  answer tokens: 20
+  multifieldqa_en               +12.96%  delta NLL/token: +0.121873  answer tokens: 85
+  samsum                         -3.24%  delta NLL/token: -0.032888  answer tokens: 170
+  qasper                        +29.76%  delta NLL/token: +0.260504  answer tokens: 52
+  passage_count                 +48.62%  delta NLL/token: +0.396199  answer tokens: 5
+  trec                         +133.60%  delta NLL/token: +0.848450  answer tokens: 10
+
+906M | pooled PPL: -1.59% | task-balanced PPL: -13.62%
+  passage_retrieval_en          -37.52%  delta NLL/token: -0.470306  answer tokens: 15
+  musique                       -20.97%  delta NLL/token: -0.235401  answer tokens: 22
+  narrativeqa                    -7.48%  delta NLL/token: -0.077748  answer tokens: 23
+  repobench-p                    +0.77%  delta NLL/token: +0.007684  answer tokens: 77
+  2wikimqa                      -22.25%  delta NLL/token: -0.251699  answer tokens: 24
+  hotpotqa                       -7.22%  delta NLL/token: -0.074933  answer tokens: 16
+  multi_news                     -4.49%  delta NLL/token: -0.045940  answer tokens: 1420
+  qmsum                          -0.23%  delta NLL/token: -0.002307  answer tokens: 480
+  lcc                           -13.68%  delta NLL/token: -0.147070  answer tokens: 57
+  gov_report                     +0.82%  delta NLL/token: +0.008173  answer tokens: 3686
+  triviaqa                      -19.86%  delta NLL/token: -0.221443  answer tokens: 20
+  multifieldqa_en                +3.81%  delta NLL/token: +0.037401  answer tokens: 85
+  samsum                         -8.29%  delta NLL/token: -0.086551  answer tokens: 170
+  qasper                        -19.78%  delta NLL/token: -0.220370  answer tokens: 52
+  passage_count                  +5.46%  delta NLL/token: +0.053190  answer tokens: 5
+  trec                          -45.98%  delta NLL/token: -0.615843  answer tokens: 10
+
+===========================================================================
+ATTENTION DROPOUT 0.4 VS. NO DROPOUT
+===========================================================================
+
+271M | pooled PPL: -2.68% | task-balanced PPL: +9.08%
+  passage_retrieval_en          -15.83%  delta NLL/token: -0.172373  answer tokens: 15
+  musique                       +24.72%  delta NLL/token: +0.220888  answer tokens: 22
+  narrativeqa                   -26.63%  delta NLL/token: -0.309639  answer tokens: 23
+  repobench-p                   +10.67%  delta NLL/token: +0.101415  answer tokens: 77
+  2wikimqa                       +2.16%  delta NLL/token: +0.021329  answer tokens: 24
+  hotpotqa                      +13.59%  delta NLL/token: +0.127467  answer tokens: 16
+  multi_news                     -7.06%  delta NLL/token: -0.073202  answer tokens: 1420
+  qmsum                          -2.24%  delta NLL/token: -0.022667  answer tokens: 480
+  lcc                            -7.71%  delta NLL/token: -0.080184  answer tokens: 57
+  gov_report                     -1.94%  delta NLL/token: -0.019582  answer tokens: 3686
+  triviaqa                      +34.67%  delta NLL/token: +0.297660  answer tokens: 20
+  multifieldqa_en                +0.68%  delta NLL/token: +0.006780  answer tokens: 85
+  samsum                         -4.66%  delta NLL/token: -0.047695  answer tokens: 170
+  qasper                        +22.71%  delta NLL/token: +0.204637  answer tokens: 52
+  passage_count                 +41.28%  delta NLL/token: +0.345570  answer tokens: 5
+  trec                         +120.47%  delta NLL/token: +0.790586  answer tokens: 10
+
+504M | pooled PPL: +2.85% | task-balanced PPL: +7.29%
+  passage_retrieval_en          -49.72%  delta NLL/token: -0.687529  answer tokens: 15
+  musique                        -5.55%  delta NLL/token: -0.057060  answer tokens: 22
+  narrativeqa                   +26.71%  delta NLL/token: +0.236751  answer tokens: 23
+  repobench-p                   -21.27%  delta NLL/token: -0.239181  answer tokens: 77
+  2wikimqa                       -5.63%  delta NLL/token: -0.057942  answer tokens: 24
+  hotpotqa                      +18.01%  delta NLL/token: +0.165608  answer tokens: 16
+  multi_news                     +4.95%  delta NLL/token: +0.048319  answer tokens: 1420
+  qmsum                          -0.47%  delta NLL/token: -0.004676  answer tokens: 480
+  lcc                           +11.22%  delta NLL/token: +0.106302  answer tokens: 57
+  gov_report                     +2.35%  delta NLL/token: +0.023201  answer tokens: 3686
+  triviaqa                      +21.43%  delta NLL/token: +0.194195  answer tokens: 20
+  multifieldqa_en               +10.31%  delta NLL/token: +0.098099  answer tokens: 85
+  samsum                         +3.07%  delta NLL/token: +0.030274  answer tokens: 170
+  qasper                        +27.46%  delta NLL/token: +0.242618  answer tokens: 52
+  passage_count                 +46.03%  delta NLL/token: +0.378674  answer tokens: 5
+  trec                          +91.34%  delta NLL/token: +0.648878  answer tokens: 10
+
+906M | pooled PPL: -0.01% | task-balanced PPL: -7.58%
+  passage_retrieval_en          -10.00%  delta NLL/token: -0.105318  answer tokens: 15
+  musique                        -1.14%  delta NLL/token: -0.011482  answer tokens: 22
+  narrativeqa                   -20.02%  delta NLL/token: -0.223332  answer tokens: 23
+  repobench-p                    -9.45%  delta NLL/token: -0.099267  answer tokens: 77
+  2wikimqa                      -24.30%  delta NLL/token: -0.278452  answer tokens: 24
+  hotpotqa                      +57.48%  delta NLL/token: +0.454151  answer tokens: 16
+  multi_news                     -1.94%  delta NLL/token: -0.019584  answer tokens: 1420
+  qmsum                          +3.01%  delta NLL/token: +0.029618  answer tokens: 480
+  lcc                           -14.10%  delta NLL/token: -0.152001  answer tokens: 57
+  gov_report                     +1.91%  delta NLL/token: +0.018896  answer tokens: 3686
+  triviaqa                      -15.36%  delta NLL/token: -0.166785  answer tokens: 20
+  multifieldqa_en                +6.15%  delta NLL/token: +0.059656  answer tokens: 85
+  samsum                        -12.65%  delta NLL/token: -0.135297  answer tokens: 170
+  qasper                        -15.48%  delta NLL/token: -0.168208  answer tokens: 52
+  passage_count                 -15.24%  delta NLL/token: -0.165353  answer tokens: 5
+  trec                          -25.76%  delta NLL/token: -0.297909  answer tokens: 10
+
+===========================================================================
+AD 0.2 + ILD VS. NO DROPOUT
+===========================================================================
+
+271M | pooled PPL: -1.06% | task-balanced PPL: +15.30%
+  passage_retrieval_en          +49.37%  delta NLL/token: +0.401247  answer tokens: 15
+  musique                       -24.32%  delta NLL/token: -0.278646  answer tokens: 22
+  narrativeqa                   -17.76%  delta NLL/token: -0.195523  answer tokens: 23
+  repobench-p                   +36.96%  delta NLL/token: +0.314511  answer tokens: 77
+  2wikimqa                      -11.53%  delta NLL/token: -0.122496  answer tokens: 24
+  hotpotqa                      +37.34%  delta NLL/token: +0.317282  answer tokens: 16
+  multi_news                     -5.66%  delta NLL/token: -0.058269  answer tokens: 1420
+  qmsum                          -3.98%  delta NLL/token: -0.040644  answer tokens: 480
+  lcc                           +25.15%  delta NLL/token: +0.224336  answer tokens: 57
+  gov_report                     -0.93%  delta NLL/token: -0.009387  answer tokens: 3686
+  triviaqa                      +52.63%  delta NLL/token: +0.422846  answer tokens: 20
+  multifieldqa_en                +3.14%  delta NLL/token: +0.030892  answer tokens: 85
+  samsum                         +7.89%  delta NLL/token: +0.075933  answer tokens: 170
+  qasper                        +10.05%  delta NLL/token: +0.095795  answer tokens: 52
+  passage_count                +101.71%  delta NLL/token: +0.701638  answer tokens: 5
+  trec                          +48.91%  delta NLL/token: +0.398186  answer tokens: 10
+
+504M | pooled PPL: +0.86% | task-balanced PPL: +10.08%
+  passage_retrieval_en          +84.02%  delta NLL/token: +0.609892  answer tokens: 15
+  musique                        -2.15%  delta NLL/token: -0.021756  answer tokens: 22
+  narrativeqa                    -5.82%  delta NLL/token: -0.059995  answer tokens: 23
+  repobench-p                   -24.47%  delta NLL/token: -0.280688  answer tokens: 77
+  2wikimqa                      +22.69%  delta NLL/token: +0.204509  answer tokens: 24
+  hotpotqa                      -12.99%  delta NLL/token: -0.139144  answer tokens: 16
+  multi_news                     +2.32%  delta NLL/token: +0.022919  answer tokens: 1420
+  qmsum                         -10.00%  delta NLL/token: -0.105406  answer tokens: 480
+  lcc                            -5.56%  delta NLL/token: -0.057169  answer tokens: 57
+  gov_report                     +1.14%  delta NLL/token: +0.011331  answer tokens: 3686
+  triviaqa                      -18.06%  delta NLL/token: -0.199184  answer tokens: 20
+  multifieldqa_en               +11.20%  delta NLL/token: +0.106123  answer tokens: 85
+  samsum                        +14.22%  delta NLL/token: +0.132946  answer tokens: 170
+  qasper                        +21.29%  delta NLL/token: +0.192986  answer tokens: 52
+  passage_count                +163.54%  delta NLL/token: +0.969040  answer tokens: 5
+  trec                          +16.15%  delta NLL/token: +0.149680  answer tokens: 10
+
+906M | pooled PPL: -1.22% | task-balanced PPL: -12.74%
+  passage_retrieval_en          -48.35%  delta NLL/token: -0.660595  answer tokens: 15
+  musique                        -9.10%  delta NLL/token: -0.095389  answer tokens: 22
+  narrativeqa                    -1.90%  delta NLL/token: -0.019232  answer tokens: 23
+  repobench-p                    +5.98%  delta NLL/token: +0.058048  answer tokens: 77
+  2wikimqa                      -24.22%  delta NLL/token: -0.277341  answer tokens: 24
+  hotpotqa                       +6.90%  delta NLL/token: +0.066690  answer tokens: 16
+  multi_news                     -1.69%  delta NLL/token: -0.017088  answer tokens: 1420
+  qmsum                          -5.21%  delta NLL/token: -0.053546  answer tokens: 480
+  lcc                           -17.92%  delta NLL/token: -0.197524  answer tokens: 57
+  gov_report                     +0.61%  delta NLL/token: +0.006033  answer tokens: 3686
+  triviaqa                      -45.18%  delta NLL/token: -0.601186  answer tokens: 20
+  multifieldqa_en                +7.02%  delta NLL/token: +0.067876  answer tokens: 85
+  samsum                         -6.48%  delta NLL/token: -0.066981  answer tokens: 170
+  qasper                         +0.75%  delta NLL/token: +0.007486  answer tokens: 52
+  passage_count                 +39.67%  delta NLL/token: +0.334141  answer tokens: 5
+  trec                          -51.88%  delta NLL/token: -0.731395  answer tokens: 10
+
+===========================================================================
+AD 0.4 + ILD VS. NO DROPOUT
+===========================================================================
+
+271M | pooled PPL: +3.39% | task-balanced PPL: +19.45%
+  passage_retrieval_en          +25.53%  delta NLL/token: +0.227399  answer tokens: 15
+  musique                       +28.14%  delta NLL/token: +0.247938  answer tokens: 22
+  narrativeqa                   +18.73%  delta NLL/token: +0.171671  answer tokens: 23
+  repobench-p                   +20.17%  delta NLL/token: +0.183738  answer tokens: 77
+  2wikimqa                      +15.88%  delta NLL/token: +0.147397  answer tokens: 24
+  hotpotqa                      +78.90%  delta NLL/token: +0.581670  answer tokens: 16
+  multi_news                     +0.17%  delta NLL/token: +0.001704  answer tokens: 1420
+  qmsum                          +3.99%  delta NLL/token: +0.039155  answer tokens: 480
+  lcc                            +2.96%  delta NLL/token: +0.029143  answer tokens: 57
+  gov_report                     +3.03%  delta NLL/token: +0.029809  answer tokens: 3686
+  triviaqa                       +8.00%  delta NLL/token: +0.076918  answer tokens: 20
+  multifieldqa_en                -7.40%  delta NLL/token: -0.076906  answer tokens: 85
+  samsum                        +10.26%  delta NLL/token: +0.097629  answer tokens: 170
+  qasper                        +31.27%  delta NLL/token: +0.272064  answer tokens: 52
+  passage_count                 +28.81%  delta NLL/token: +0.253168  answer tokens: 5
+  trec                          +75.24%  delta NLL/token: +0.561000  answer tokens: 10
+
+504M | pooled PPL: +1.60% | task-balanced PPL: +20.11%
+  passage_retrieval_en         +115.92%  delta NLL/token: +0.769750  answer tokens: 15
+  musique                        +3.94%  delta NLL/token: +0.038610  answer tokens: 22
+  narrativeqa                    +8.05%  delta NLL/token: +0.077422  answer tokens: 23
+  repobench-p                   -18.55%  delta NLL/token: -0.205207  answer tokens: 77
+  2wikimqa                      -14.19%  delta NLL/token: -0.153036  answer tokens: 24
+  hotpotqa                      -11.63%  delta NLL/token: -0.123588  answer tokens: 16
+  multi_news                     -1.13%  delta NLL/token: -0.011339  answer tokens: 1420
+  qmsum                          -4.91%  delta NLL/token: -0.050297  answer tokens: 480
+  lcc                           +19.90%  delta NLL/token: +0.181507  answer tokens: 57
+  gov_report                     +2.16%  delta NLL/token: +0.021334  answer tokens: 3686
+  triviaqa                      -18.30%  delta NLL/token: -0.202165  answer tokens: 20
+  multifieldqa_en               +15.08%  delta NLL/token: +0.140465  answer tokens: 85
+  samsum                        +12.60%  delta NLL/token: +0.118659  answer tokens: 170
+  qasper                        +26.60%  delta NLL/token: +0.235887  answer tokens: 52
+  passage_count                +168.02%  delta NLL/token: +0.985876  answer tokens: 5
+  trec                         +202.71%  delta NLL/token: +1.107615  answer tokens: 10
+
+906M | pooled PPL: -2.02% | task-balanced PPL: -17.44%
+  passage_retrieval_en          -58.26%  delta NLL/token: -0.873638  answer tokens: 15
+  musique                       -19.47%  delta NLL/token: -0.216533  answer tokens: 22
+  narrativeqa                   -11.95%  delta NLL/token: -0.127307  answer tokens: 23
+  repobench-p                    +0.88%  delta NLL/token: +0.008801  answer tokens: 77
+  2wikimqa                      -34.19%  delta NLL/token: -0.418420  answer tokens: 24
+  hotpotqa                      -21.01%  delta NLL/token: -0.235866  answer tokens: 16
+  multi_news                     -3.02%  delta NLL/token: -0.030646  answer tokens: 1420
+  qmsum                          -0.71%  delta NLL/token: -0.007164  answer tokens: 480
+  lcc                           -29.87%  delta NLL/token: -0.354830  answer tokens: 57
+  gov_report                     +0.06%  delta NLL/token: +0.000576  answer tokens: 3686
+  triviaqa                      -26.49%  delta NLL/token: -0.307795  answer tokens: 20
+  multifieldqa_en                +4.05%  delta NLL/token: +0.039661  answer tokens: 85
+  samsum                         -2.41%  delta NLL/token: -0.024396  answer tokens: 170
+  qasper                        -31.60%  delta NLL/token: -0.379783  answer tokens: 52
+  passage_count                 -18.77%  delta NLL/token: -0.207846  answer tokens: 5
+  trec                           +7.18%  delta NLL/token: +0.069340  answer tokens: 10
+
+===========================================================================
+AD 0.8 + ILD VS. NO DROPOUT
+===========================================================================
+
+271M | pooled PPL: +4.42% | task-balanced PPL: +39.36%
+  passage_retrieval_en         +129.48%  delta NLL/token: +0.830665  answer tokens: 15
+  musique                       +55.84%  delta NLL/token: +0.443686  answer tokens: 22
+  narrativeqa                   +22.60%  delta NLL/token: +0.203774  answer tokens: 23
+  repobench-p                   +38.96%  delta NLL/token: +0.329044  answer tokens: 77
+  2wikimqa                      +40.09%  delta NLL/token: +0.337095  answer tokens: 24
+  hotpotqa                      +80.24%  delta NLL/token: +0.589112  answer tokens: 16
+  multi_news                     -0.48%  delta NLL/token: -0.004815  answer tokens: 1420
+  qmsum                          -0.83%  delta NLL/token: -0.008334  answer tokens: 480
+  lcc                           +32.57%  delta NLL/token: +0.281952  answer tokens: 57
+  gov_report                     +4.14%  delta NLL/token: +0.040530  answer tokens: 3686
+  triviaqa                       +1.65%  delta NLL/token: +0.016341  answer tokens: 20
+  multifieldqa_en                +3.50%  delta NLL/token: +0.034381  answer tokens: 85
+  samsum                         +9.71%  delta NLL/token: +0.092664  answer tokens: 170
+  qasper                        +14.51%  delta NLL/token: +0.135509  answer tokens: 52
+  passage_count                +110.80%  delta NLL/token: +0.745729  answer tokens: 5
+  trec                         +246.43%  delta NLL/token: +1.242505  answer tokens: 10
+
+504M | pooled PPL: +2.96% | task-balanced PPL: +7.61%
+  passage_retrieval_en           +6.19%  delta NLL/token: +0.060070  answer tokens: 15
+  musique                       -29.88%  delta NLL/token: -0.354909  answer tokens: 22
+  narrativeqa                    -9.61%  delta NLL/token: -0.101072  answer tokens: 23
+  repobench-p                   -23.86%  delta NLL/token: -0.272591  answer tokens: 77
+  2wikimqa                      +23.62%  delta NLL/token: +0.212029  answer tokens: 24
+  hotpotqa                       +7.43%  delta NLL/token: +0.071668  answer tokens: 16
+  multi_news                     +2.27%  delta NLL/token: +0.022491  answer tokens: 1420
+  qmsum                          -1.05%  delta NLL/token: -0.010529  answer tokens: 480
+  lcc                           +29.98%  delta NLL/token: +0.262219  answer tokens: 57
+  gov_report                     +3.63%  delta NLL/token: +0.035651  answer tokens: 3686
+  triviaqa                       +5.51%  delta NLL/token: +0.053639  answer tokens: 20
+  multifieldqa_en               +12.55%  delta NLL/token: +0.118189  answer tokens: 85
+  samsum                         +3.72%  delta NLL/token: +0.036548  answer tokens: 170
+  qasper                        +12.04%  delta NLL/token: +0.113655  answer tokens: 52
+  passage_count                 +51.21%  delta NLL/token: +0.413508  answer tokens: 5
+  trec                          +67.03%  delta NLL/token: +0.513020  answer tokens: 10
+
+906M | pooled PPL: -1.28% | task-balanced PPL: -13.34%
+  passage_retrieval_en          -55.50%  delta NLL/token: -0.809778  answer tokens: 15
+  musique                       -22.04%  delta NLL/token: -0.248916  answer tokens: 22
+  narrativeqa                   +13.04%  delta NLL/token: +0.122529  answer tokens: 23
+  repobench-p                   +10.79%  delta NLL/token: +0.102450  answer tokens: 77
+  2wikimqa                      -31.37%  delta NLL/token: -0.376410  answer tokens: 24
+  hotpotqa                       -4.43%  delta NLL/token: -0.045264  answer tokens: 16
+  multi_news                     -3.39%  delta NLL/token: -0.034523  answer tokens: 1420
+  qmsum                          -2.61%  delta NLL/token: -0.026397  answer tokens: 480
+  lcc                           -20.39%  delta NLL/token: -0.227974  answer tokens: 57
+  gov_report                     +1.14%  delta NLL/token: +0.011327  answer tokens: 3686
+  triviaqa                      -18.60%  delta NLL/token: -0.205740  answer tokens: 20
+  multifieldqa_en                +4.40%  delta NLL/token: +0.043069  answer tokens: 85
+  samsum                         -5.52%  delta NLL/token: -0.056739  answer tokens: 170
+  qasper                        -29.17%  delta NLL/token: -0.344901  answer tokens: 52
+  passage_count                  -1.80%  delta NLL/token: -0.018175  answer tokens: 5
+  trec                          -16.04%  delta NLL/token: -0.174885  answer tokens: 10
+

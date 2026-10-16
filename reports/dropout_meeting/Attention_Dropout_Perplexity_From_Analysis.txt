@@ -1,0 +1,110 @@
+Attention dropout exhibits a clear dependence on model architecture and dropout rate. The 906M models show the most consistent benefits, particularly when trained at 16K. At 16K evaluation context, attention dropout of 0.2 reduces pooled gold-answer perplexity by 2.78% and task-balanced perplexity by 17.37% relative to the corresponding zero-dropout model. In contrast, the 504M models show mixed results, with higher dropout rates generally degrading performance at 16K. The 271M models also demonstrate improvements in pooled perplexity, but consistently worse task-balanced perplexity. These findings suggest that attention dropout's effectiveness depends on model architecture and that conclusions can differ substantially depending on how performance is aggregated across tasks.
+
+The relationship between dropout and context length is similarly architecture-dependent. For the 906M models trained at 16K, moderate attention dropout becomes increasingly beneficial as evaluation context increases from 4K to 16K, particularly under task-balanced perplexity. This trend is not observed for the smaller architectures. Meanwhile, ILD provides improvements over standard attention dropout in certain configurations, but its benefits are inconsistent across model sizes, dropout rates, and training contexts. Overall, the results suggest that attention dropout can improve long-context language modeling, but that its effectiveness is sensitive to model configuration rather than universally improving performance.
+
+DEFINITIONS
+
+Pooled perplexity = token-weighted
+Task-balanced perplexity = equal task weighting
+
+tl;dr
+
+A. The 906M results are genuinely promising
+B. The 271M results aren't entirely bad, but they are much better at pooled rather than task-balanced perplexity
+C. ILD is not consistently better here, although some 8k runs help
+
+========================================================================
+TRAINED: 8192 | EVALUATED: 8192
+========================================================================
+
+ATTENTION DROPOUT vs. NO DROPOUT
+ 271M  AD 0p1 vs AD 0p0       PPL    -0.82%  Task-balanced    +8.73%
+ 271M  AD 0p2 vs AD 0p0       PPL    -0.77%  Task-balanced   +17.37%
+ 271M  AD 0p4 vs AD 0p0       PPL    +2.18%  Task-balanced   +35.00%
+ 504M  AD 0p1 vs AD 0p0       PPL    -1.91%  Task-balanced    -0.36%
+ 504M  AD 0p2 vs AD 0p0       PPL    -2.12%  Task-balanced    +6.79%
+ 504M  AD 0p4 vs AD 0p0       PPL    +0.08%  Task-balanced    -9.20%
+ 906M  AD 0p1 vs AD 0p0       PPL    -1.54%  Task-balanced    -3.43%
+ 906M  AD 0p2 vs AD 0p0       PPL    -1.97%  Task-balanced   +10.42%
+ 906M  AD 0p4 vs AD 0p0       PPL    -0.12%  Task-balanced    +0.55%
+
+ILD vs. STANDARD DROPOUT
+ 271M  ILD vs standard AD 0p2    PPL    -0.35%  Task-balanced   -16.03%
+ 271M  ILD vs standard AD 0p4    PPL    -2.29%  Task-balanced   -21.40%
+ 504M  ILD vs standard AD 0p2    PPL    -1.27%  Task-balanced    -7.03%
+ 504M  ILD vs standard AD 0p4    PPL    -2.73%  Task-balanced   +12.57%
+ 906M  ILD vs standard AD 0p2    PPL    +0.06%  Task-balanced   -12.51%
+ 906M  ILD vs standard AD 0p4    PPL    -1.10%  Task-balanced    -0.16%
+
+========================================================================
+TRAINED: 16384 | EVALUATED: 4096
+========================================================================
+
+ATTENTION DROPOUT vs. NO DROPOUT
+ 271M  AD 0p1 vs AD 0p0       PPL    +0.11%  Task-balanced   +15.33%
+ 271M  AD 0p2 vs AD 0p0       PPL    -0.99%  Task-balanced   +14.61%
+ 271M  AD 0p4 vs AD 0p0       PPL    -1.24%  Task-balanced    +9.00%
+ 504M  AD 0p1 vs AD 0p0       PPL    -1.09%  Task-balanced    +2.99%
+ 504M  AD 0p2 vs AD 0p0       PPL    +0.84%  Task-balanced    +6.94%
+ 504M  AD 0p4 vs AD 0p0       PPL    +2.35%  Task-balanced    +7.25%
+ 906M  AD 0p1 vs AD 0p0       PPL    -0.98%  Task-balanced    -9.31%
+ 906M  AD 0p2 vs AD 0p0       PPL    -1.44%  Task-balanced   -12.70%
+ 906M  AD 0p4 vs AD 0p0       PPL    +0.27%  Task-balanced    +0.49%
+
+ILD vs. STANDARD DROPOUT
+ 271M  ILD vs standard AD 0p2    PPL    +0.73%  Task-balanced    -4.40%
+ 271M  ILD vs standard AD 0p4    PPL    +4.69%  Task-balanced    +7.27%
+ 504M  ILD vs standard AD 0p2    PPL    -0.35%  Task-balanced    +5.27%
+ 504M  ILD vs standard AD 0p4    PPL    -1.74%  Task-balanced   +13.63%
+ 906M  ILD vs standard AD 0p2    PPL    +0.83%  Task-balanced    +8.02%
+ 906M  ILD vs standard AD 0p4    PPL    -1.64%  Task-balanced   -13.55%
+
+========================================================================
+TRAINED: 16384 | EVALUATED: 8192
+========================================================================
+
+ATTENTION DROPOUT vs. NO DROPOUT
+ 271M  AD 0p1 vs AD 0p0       PPL    -1.01%  Task-balanced   +18.20%
+ 271M  AD 0p2 vs AD 0p0       PPL    -1.92%  Task-balanced   +16.13%
+ 271M  AD 0p4 vs AD 0p0       PPL    -2.71%  Task-balanced   +11.18%
+ 504M  AD 0p1 vs AD 0p0       PPL    -0.44%  Task-balanced    +6.42%
+ 504M  AD 0p2 vs AD 0p0       PPL    +1.31%  Task-balanced    +7.75%
+ 504M  AD 0p4 vs AD 0p0       PPL    +3.26%  Task-balanced   +12.57%
+ 906M  AD 0p1 vs AD 0p0       PPL    -1.21%  Task-balanced   -11.73%
+ 906M  AD 0p2 vs AD 0p0       PPL    -2.16%  Task-balanced   -16.45%
+ 906M  AD 0p4 vs AD 0p0       PPL    +0.32%  Task-balanced    -5.31%
+
+ILD vs. STANDARD DROPOUT
+ 271M  ILD vs standard AD 0p2    PPL    +1.28%  Task-balanced    -2.28%
+ 271M  ILD vs standard AD 0p4    PPL    +6.71%  Task-balanced    +5.27%
+ 504M  ILD vs standard AD 0p2    PPL    -0.31%  Task-balanced    +4.47%
+ 504M  ILD vs standard AD 0p4    PPL    -1.12%  Task-balanced    +8.60%
+ 906M  ILD vs standard AD 0p2    PPL    +1.66%  Task-balanced    +9.25%
+ 906M  ILD vs standard AD 0p4    PPL    -1.99%  Task-balanced    -9.85%
+
+========================================================================
+TRAINED: 16384 | EVALUATED: 16384
+========================================================================
+
+ATTENTION DROPOUT vs. NO DROPOUT
+ 271M  AD 0p1 vs AD 0p0       PPL    -1.43%  Task-balanced   +19.40%
+ 271M  AD 0p2 vs AD 0p0       PPL    -2.01%  Task-balanced   +16.76%
+ 271M  AD 0p4 vs AD 0p0       PPL    -2.68%  Task-balanced    +9.08%
+ 504M  AD 0p1 vs AD 0p0       PPL    -0.52%  Task-balanced    +2.74%
+ 504M  AD 0p2 vs AD 0p0       PPL    +1.18%  Task-balanced    +3.86%
+ 504M  AD 0p4 vs AD 0p0       PPL    +2.85%  Task-balanced    +7.29%
+ 906M  AD 0p1 vs AD 0p0       PPL    -1.59%  Task-balanced   -13.62%
+ 906M  AD 0p2 vs AD 0p0       PPL    -2.78%  Task-balanced   -17.37%
+ 906M  AD 0p4 vs AD 0p0       PPL    -0.01%  Task-balanced    -7.58%
+
+ILD vs. STANDARD DROPOUT
+ 271M  ILD vs standard AD 0p2    PPL    +0.97%  Task-balanced    -1.25%
+ 271M  ILD vs standard AD 0p4    PPL    +6.23%  Task-balanced    +9.50%
+ 504M  ILD vs standard AD 0p2    PPL    -0.32%  Task-balanced    +5.99%
+ 504M  ILD vs standard AD 0p4    PPL    -1.21%  Task-balanced   +11.94%
+ 906M  ILD vs standard AD 0p2    PPL    +1.61%  Task-balanced    +5.60%
+ 906M  ILD vs standard AD 0p4    PPL    -2.02%  Task-balanced   -10.67%
+
+Saved results:
+  /home/alexanderpretko/Perplexity_LongBench/results/dropout_meeting/attention_dropout.csv
+  /home/alexanderpretko/Perplexity_LongBench/results/dropout_meeting/ild_comparisons.csv
