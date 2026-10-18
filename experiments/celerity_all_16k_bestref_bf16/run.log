@@ -1,0 +1,347 @@
+=== BEST REFERENCE 16k; checking pinned manifest ===
+Frozen 21 of 189 Celerity models
+   1: adpretko/celerity-906m-16k-ad0p8-ild @ 0f69a83670dd train=16384 eval=16384
+   2: adpretko/celerity-906m-16k-ad0p2-ild @ 88a1adad53b8 train=16384 eval=16384
+   3: adpretko/celerity-906m-16k-ad0p4 @ 120ea756b8f3 train=16384 eval=16384
+   4: adpretko/celerity-906m-16k-ad0p1 @ e0083b3c7e85 train=16384 eval=16384
+   5: adpretko/celerity-906m-16k-ad0p0 @ 33237ee2f320 train=16384 eval=16384
+   6: adpretko/celerity-906m-16k-ad0p4-ild @ 179a3dc33573 train=16384 eval=16384
+   7: adpretko/celerity-906m-16k-ad0p2 @ 3b99db4fe20a train=16384 eval=16384
+   8: adpretko/celerity-504m-16k-ad0p8-ild @ 9ea791431737 train=16384 eval=16384
+   9: adpretko/celerity-504m-16k-ad0p4-ild @ 21e2fb693bd9 train=16384 eval=16384
+  10: adpretko/celerity-504m-16k-ad0p2-ild @ 36f96fb5950d train=16384 eval=16384
+  11: adpretko/celerity-504m-16k-ad0p4 @ f8690ac92828 train=16384 eval=16384
+  12: adpretko/celerity-504m-16k-ad0p2 @ 6c02b9327753 train=16384 eval=16384
+  13: adpretko/celerity-504m-16k-ad0p1 @ 1622ff378fda train=16384 eval=16384
+  14: adpretko/celerity-504m-16k-ad0p0 @ ae9c53f7f196 train=16384 eval=16384
+  15: adpretko/celerity-271m-16k-ad0p8-ild @ 2f891e9bc343 train=16384 eval=16384
+  16: adpretko/celerity-271m-16k-ad0p4-ild @ 3085bbbaff88 train=16384 eval=16384
+  17: adpretko/celerity-271m-16k-ad0p2-ild @ 33636d596aab train=16384 eval=16384
+  18: adpretko/celerity-271m-16k-ad0p4 @ 6fbde25b95bf train=16384 eval=16384
+  19: adpretko/celerity-271m-16k-ad0p2 @ c12a36a14ce0 train=16384 eval=16384
+  20: adpretko/celerity-271m-16k-ad0p1 @ d516285377f8 train=16384 eval=16384
+  21: adpretko/celerity-271m-16k-ad0p0 @ a27b5e939966 train=16384 eval=16384
+=== Running full 16k campaign (resumable) ===
+Reusing frozen manifest: results/celerity_all_16k_bestref_bf16/manifest.json
+Frozen 21 of 189 Celerity models
+   1: adpretko/celerity-906m-16k-ad0p8-ild @ 0f69a83670dd train=16384 eval=16384
+   2: adpretko/celerity-906m-16k-ad0p2-ild @ 88a1adad53b8 train=16384 eval=16384
+   3: adpretko/celerity-906m-16k-ad0p4 @ 120ea756b8f3 train=16384 eval=16384
+   4: adpretko/celerity-906m-16k-ad0p1 @ e0083b3c7e85 train=16384 eval=16384
+   5: adpretko/celerity-906m-16k-ad0p0 @ 33237ee2f320 train=16384 eval=16384
+   6: adpretko/celerity-906m-16k-ad0p4-ild @ 179a3dc33573 train=16384 eval=16384
+   7: adpretko/celerity-906m-16k-ad0p2 @ 3b99db4fe20a train=16384 eval=16384
+   8: adpretko/celerity-504m-16k-ad0p8-ild @ 9ea791431737 train=16384 eval=16384
+   9: adpretko/celerity-504m-16k-ad0p4-ild @ 21e2fb693bd9 train=16384 eval=16384
+  10: adpretko/celerity-504m-16k-ad0p2-ild @ 36f96fb5950d train=16384 eval=16384
+  11: adpretko/celerity-504m-16k-ad0p4 @ f8690ac92828 train=16384 eval=16384
+  12: adpretko/celerity-504m-16k-ad0p2 @ 6c02b9327753 train=16384 eval=16384
+  13: adpretko/celerity-504m-16k-ad0p1 @ 1622ff378fda train=16384 eval=16384
+  14: adpretko/celerity-504m-16k-ad0p0 @ ae9c53f7f196 train=16384 eval=16384
+  15: adpretko/celerity-271m-16k-ad0p8-ild @ 2f891e9bc343 train=16384 eval=16384
+  16: adpretko/celerity-271m-16k-ad0p4-ild @ 3085bbbaff88 train=16384 eval=16384
+  17: adpretko/celerity-271m-16k-ad0p2-ild @ 33636d596aab train=16384 eval=16384
+  18: adpretko/celerity-271m-16k-ad0p4 @ 6fbde25b95bf train=16384 eval=16384
+  19: adpretko/celerity-271m-16k-ad0p2 @ c12a36a14ce0 train=16384 eval=16384
+  20: adpretko/celerity-271m-16k-ad0p1 @ d516285377f8 train=16384 eval=16384
+  21: adpretko/celerity-271m-16k-ad0p0 @ a27b5e939966 train=16384 eval=16384
+Fixed LongBench sample: 80 examples across 16 tasks
+[1/21] START adpretko/celerity-906m-16k-ad0p8-ild
+Downloading shards:   0%|          | 0/1 [00:00<?, ?it/s]Downloading shards: 100%|██████████| 1/1 [00:13<00:00, 13.82s/it]Downloading shards: 100%|██████████| 1/1 [00:13<00:00, 13.82s/it]
+Some weights of CelerityForCausalLM were not initialized from the model checkpoint at adpretko/celerity-906m-16k-ad0p8-ild and are newly initialized: ['model.alibi_emb.slopes']
+You should probably TRAIN this model on a down-stream task to be able to use it for predictions and inference.
+Starting from v4.46, the `logits` model output will have the same type as the model (except at train time, where it will always be FP32)
+    10/80 examples: qasper (3.11s)
+    20/80 examples: hotpotqa (4.33s)
+    30/80 examples: musique (3.80s)
+    40/80 examples: qmsum (2.69s)
+    50/80 examples: trec (0.51s)
+    60/80 examples: samsum (1.32s)
+    70/80 examples: passage_retrieval_en (3.61s)
+    80/80 examples: repobench-p (4.04s)
+[1/21] DONE PPL=10.019 load=16.0s eval=303.7s
+[2/21] START adpretko/celerity-906m-16k-ad0p2-ild
+Downloading shards:   0%|          | 0/1 [00:00<?, ?it/s]Downloading shards: 100%|██████████| 1/1 [00:12<00:00, 12.05s/it]Downloading shards: 100%|██████████| 1/1 [00:12<00:00, 12.05s/it]
+Some weights of CelerityForCausalLM were not initialized from the model checkpoint at adpretko/celerity-906m-16k-ad0p2-ild and are newly initialized: ['model.alibi_emb.slopes']
+You should probably TRAIN this model on a down-stream task to be able to use it for predictions and inference.
+Starting from v4.46, the `logits` model output will have the same type as the model (except at train time, where it will always be FP32)
+    10/80 examples: qasper (3.12s)
+    20/80 examples: hotpotqa (4.34s)
+    30/80 examples: musique (3.81s)
+    40/80 examples: qmsum (2.69s)
+    50/80 examples: trec (0.51s)
+    60/80 examples: samsum (1.32s)
+    70/80 examples: passage_retrieval_en (3.61s)
+    80/80 examples: repobench-p (4.04s)
+[2/21] DONE PPL=10.041 load=13.7s eval=303.6s
+[3/21] START adpretko/celerity-906m-16k-ad0p4
+Downloading shards:   0%|          | 0/1 [00:00<?, ?it/s]Downloading shards: 100%|██████████| 1/1 [00:15<00:00, 15.43s/it]Downloading shards: 100%|██████████| 1/1 [00:15<00:00, 15.43s/it]
+Some weights of CelerityForCausalLM were not initialized from the model checkpoint at adpretko/celerity-906m-16k-ad0p4 and are newly initialized: ['model.alibi_emb.slopes']
+You should probably TRAIN this model on a down-stream task to be able to use it for predictions and inference.
+Starting from v4.46, the `logits` model output will have the same type as the model (except at train time, where it will always be FP32)
+    10/80 examples: qasper (3.12s)
+    20/80 examples: hotpotqa (4.34s)
+    30/80 examples: musique (3.80s)
+    40/80 examples: qmsum (2.69s)
+    50/80 examples: trec (0.51s)
+    60/80 examples: samsum (1.32s)
+    70/80 examples: passage_retrieval_en (3.61s)
+    80/80 examples: repobench-p (4.04s)
+[3/21] DONE PPL=10.144 load=17.1s eval=303.6s
+[4/21] START adpretko/celerity-906m-16k-ad0p1
+Downloading shards:   0%|          | 0/1 [00:00<?, ?it/s]Downloading shards: 100%|██████████| 1/1 [00:14<00:00, 14.07s/it]Downloading shards: 100%|██████████| 1/1 [00:14<00:00, 14.07s/it]
+Some weights of CelerityForCausalLM were not initialized from the model checkpoint at adpretko/celerity-906m-16k-ad0p1 and are newly initialized: ['model.alibi_emb.slopes']
+You should probably TRAIN this model on a down-stream task to be able to use it for predictions and inference.
+Starting from v4.46, the `logits` model output will have the same type as the model (except at train time, where it will always be FP32)
+    10/80 examples: qasper (3.12s)
+    20/80 examples: hotpotqa (4.33s)
+    30/80 examples: musique (3.81s)
+    40/80 examples: qmsum (2.69s)
+    50/80 examples: trec (0.51s)
+    60/80 examples: samsum (1.32s)
+    70/80 examples: passage_retrieval_en (3.61s)
+    80/80 examples: repobench-p (4.04s)
+[4/21] DONE PPL=9.9813 load=15.6s eval=303.6s
+[5/21] START adpretko/celerity-906m-16k-ad0p0
+Downloading shards:   0%|          | 0/1 [00:00<?, ?it/s]Downloading shards: 100%|██████████| 1/1 [00:19<00:00, 19.33s/it]Downloading shards: 100%|██████████| 1/1 [00:19<00:00, 19.33s/it]
+Some weights of CelerityForCausalLM were not initialized from the model checkpoint at adpretko/celerity-906m-16k-ad0p0 and are newly initialized: ['model.alibi_emb.slopes']
+You should probably TRAIN this model on a down-stream task to be able to use it for predictions and inference.
+Starting from v4.46, the `logits` model output will have the same type as the model (except at train time, where it will always be FP32)
+    10/80 examples: qasper (3.12s)
+    20/80 examples: hotpotqa (4.33s)
+    30/80 examples: musique (3.81s)
+    40/80 examples: qmsum (2.69s)
+    50/80 examples: trec (0.51s)
+    60/80 examples: samsum (1.32s)
+    70/80 examples: passage_retrieval_en (3.62s)
+    80/80 examples: repobench-p (4.04s)
+[5/21] DONE PPL=10.143 load=21.0s eval=303.6s
+[6/21] START adpretko/celerity-906m-16k-ad0p4-ild
+Downloading shards:   0%|          | 0/1 [00:00<?, ?it/s]Downloading shards: 100%|██████████| 1/1 [00:54<00:00, 54.04s/it]Downloading shards: 100%|██████████| 1/1 [00:54<00:00, 54.04s/it]
+Some weights of CelerityForCausalLM were not initialized from the model checkpoint at adpretko/celerity-906m-16k-ad0p4-ild and are newly initialized: ['model.alibi_emb.slopes']
+You should probably TRAIN this model on a down-stream task to be able to use it for predictions and inference.
+Starting from v4.46, the `logits` model output will have the same type as the model (except at train time, where it will always be FP32)
+    10/80 examples: qasper (3.11s)
+    20/80 examples: hotpotqa (4.33s)
+    30/80 examples: musique (3.80s)
+    40/80 examples: qmsum (2.69s)
+    50/80 examples: trec (0.51s)
+    60/80 examples: samsum (1.32s)
+    70/80 examples: passage_retrieval_en (3.61s)
+    80/80 examples: repobench-p (4.04s)
+[6/21] DONE PPL=9.9475 load=55.7s eval=303.5s
+[7/21] START adpretko/celerity-906m-16k-ad0p2
+Downloading shards:   0%|          | 0/1 [00:00<?, ?it/s]Downloading shards: 100%|██████████| 1/1 [00:14<00:00, 14.74s/it]Downloading shards: 100%|██████████| 1/1 [00:14<00:00, 14.75s/it]
+Some weights of CelerityForCausalLM were not initialized from the model checkpoint at adpretko/celerity-906m-16k-ad0p2 and are newly initialized: ['model.alibi_emb.slopes']
+You should probably TRAIN this model on a down-stream task to be able to use it for predictions and inference.
+Starting from v4.46, the `logits` model output will have the same type as the model (except at train time, where it will always be FP32)
+    10/80 examples: qasper (3.12s)
+    20/80 examples: hotpotqa (4.35s)
+    30/80 examples: musique (3.81s)
+    40/80 examples: qmsum (2.69s)
+    50/80 examples: trec (0.51s)
+    60/80 examples: samsum (1.32s)
+    70/80 examples: passage_retrieval_en (3.61s)
+    80/80 examples: repobench-p (4.05s)
+[7/21] DONE PPL=9.8614 load=16.4s eval=303.7s
+[8/21] START adpretko/celerity-504m-16k-ad0p8-ild
+Downloading shards:   0%|          | 0/1 [00:00<?, ?it/s]Downloading shards: 100%|██████████| 1/1 [00:07<00:00,  7.98s/it]Downloading shards: 100%|██████████| 1/1 [00:07<00:00,  7.98s/it]
+Some weights of CelerityForCausalLM were not initialized from the model checkpoint at adpretko/celerity-504m-16k-ad0p8-ild and are newly initialized: ['model.alibi_emb.slopes']
+You should probably TRAIN this model on a down-stream task to be able to use it for predictions and inference.
+Starting from v4.46, the `logits` model output will have the same type as the model (except at train time, where it will always be FP32)
+    10/80 examples: qasper (3.25s)
+    20/80 examples: hotpotqa (11.82s)
+    30/80 examples: musique (4.71s)
+    40/80 examples: qmsum (2.73s)
+    50/80 examples: trec (0.52s)
+    60/80 examples: samsum (1.31s)
+    70/80 examples: passage_retrieval_en (3.67s)
+    80/80 examples: repobench-p (4.95s)
+[8/21] DONE PPL=12.562 load=9.3s eval=497.4s
+[9/21] START adpretko/celerity-504m-16k-ad0p4-ild
+Downloading shards:   0%|          | 0/1 [00:00<?, ?it/s]Downloading shards: 100%|██████████| 1/1 [00:07<00:00,  7.99s/it]Downloading shards: 100%|██████████| 1/1 [00:07<00:00,  7.99s/it]
+Some weights of CelerityForCausalLM were not initialized from the model checkpoint at adpretko/celerity-504m-16k-ad0p4-ild and are newly initialized: ['model.alibi_emb.slopes']
+You should probably TRAIN this model on a down-stream task to be able to use it for predictions and inference.
+Starting from v4.46, the `logits` model output will have the same type as the model (except at train time, where it will always be FP32)
+    10/80 examples: qasper (3.25s)
+    20/80 examples: hotpotqa (11.82s)
+    30/80 examples: musique (4.71s)
+    40/80 examples: qmsum (2.72s)
+    50/80 examples: trec (0.51s)
+    60/80 examples: samsum (1.31s)
+    70/80 examples: passage_retrieval_en (3.66s)
+    80/80 examples: repobench-p (4.96s)
+[9/21] DONE PPL=12.396 load=9.4s eval=497.4s
+[10/21] START adpretko/celerity-504m-16k-ad0p2-ild
+Downloading shards:   0%|          | 0/1 [00:00<?, ?it/s]Downloading shards: 100%|██████████| 1/1 [00:10<00:00, 10.20s/it]Downloading shards: 100%|██████████| 1/1 [00:10<00:00, 10.20s/it]
+Some weights of CelerityForCausalLM were not initialized from the model checkpoint at adpretko/celerity-504m-16k-ad0p2-ild and are newly initialized: ['model.alibi_emb.slopes']
+You should probably TRAIN this model on a down-stream task to be able to use it for predictions and inference.
+Starting from v4.46, the `logits` model output will have the same type as the model (except at train time, where it will always be FP32)
+    10/80 examples: qasper (3.25s)
+    20/80 examples: hotpotqa (11.83s)
+    30/80 examples: musique (4.73s)
+    40/80 examples: qmsum (2.73s)
+    50/80 examples: trec (0.51s)
+    60/80 examples: samsum (1.31s)
+    70/80 examples: passage_retrieval_en (3.67s)
+    80/80 examples: repobench-p (4.96s)
+[10/21] DONE PPL=12.312 load=11.6s eval=497.6s
+[11/21] START adpretko/celerity-504m-16k-ad0p4
+Downloading shards:   0%|          | 0/1 [00:00<?, ?it/s]Downloading shards: 100%|██████████| 1/1 [00:09<00:00,  9.78s/it]Downloading shards: 100%|██████████| 1/1 [00:09<00:00,  9.78s/it]
+Some weights of CelerityForCausalLM were not initialized from the model checkpoint at adpretko/celerity-504m-16k-ad0p4 and are newly initialized: ['model.alibi_emb.slopes']
+You should probably TRAIN this model on a down-stream task to be able to use it for predictions and inference.
+Starting from v4.46, the `logits` model output will have the same type as the model (except at train time, where it will always be FP32)
+    10/80 examples: qasper (3.25s)
+    20/80 examples: hotpotqa (11.81s)
+    30/80 examples: musique (4.70s)
+    40/80 examples: qmsum (2.72s)
+    50/80 examples: trec (0.51s)
+    60/80 examples: samsum (1.32s)
+    70/80 examples: passage_retrieval_en (3.66s)
+    80/80 examples: repobench-p (4.95s)
+[11/21] DONE PPL=12.542 load=11.2s eval=497.1s
+[12/21] START adpretko/celerity-504m-16k-ad0p2
+Downloading shards:   0%|          | 0/1 [00:00<?, ?it/s]Downloading shards: 100%|██████████| 1/1 [00:08<00:00,  8.46s/it]Downloading shards: 100%|██████████| 1/1 [00:08<00:00,  8.46s/it]
+Some weights of CelerityForCausalLM were not initialized from the model checkpoint at adpretko/celerity-504m-16k-ad0p2 and are newly initialized: ['model.alibi_emb.slopes']
+You should probably TRAIN this model on a down-stream task to be able to use it for predictions and inference.
+Starting from v4.46, the `logits` model output will have the same type as the model (except at train time, where it will always be FP32)
+    10/80 examples: qasper (3.26s)
+    20/80 examples: hotpotqa (11.83s)
+    30/80 examples: musique (4.71s)
+    40/80 examples: qmsum (2.73s)
+    50/80 examples: trec (0.51s)
+    60/80 examples: samsum (1.31s)
+    70/80 examples: passage_retrieval_en (3.67s)
+    80/80 examples: repobench-p (4.96s)
+[12/21] DONE PPL=12.34 load=9.8s eval=497.1s
+[13/21] START adpretko/celerity-504m-16k-ad0p1
+Downloading shards:   0%|          | 0/1 [00:00<?, ?it/s]Downloading shards: 100%|██████████| 1/1 [00:08<00:00,  8.71s/it]Downloading shards: 100%|██████████| 1/1 [00:08<00:00,  8.71s/it]
+Some weights of CelerityForCausalLM were not initialized from the model checkpoint at adpretko/celerity-504m-16k-ad0p1 and are newly initialized: ['model.alibi_emb.slopes']
+You should probably TRAIN this model on a down-stream task to be able to use it for predictions and inference.
+Starting from v4.46, the `logits` model output will have the same type as the model (except at train time, where it will always be FP32)
+    10/80 examples: qasper (3.25s)
+    20/80 examples: hotpotqa (11.80s)
+    30/80 examples: musique (4.71s)
+    40/80 examples: qmsum (2.73s)
+    50/80 examples: trec (0.51s)
+    60/80 examples: samsum (1.31s)
+    70/80 examples: passage_retrieval_en (3.67s)
+    80/80 examples: repobench-p (4.96s)
+[13/21] DONE PPL=12.144 load=10.1s eval=497.4s
+[14/21] START adpretko/celerity-504m-16k-ad0p0
+Downloading shards:   0%|          | 0/1 [00:00<?, ?it/s]Downloading shards: 100%|██████████| 1/1 [00:09<00:00,  9.42s/it]Downloading shards: 100%|██████████| 1/1 [00:09<00:00,  9.42s/it]
+Some weights of CelerityForCausalLM were not initialized from the model checkpoint at adpretko/celerity-504m-16k-ad0p0 and are newly initialized: ['model.alibi_emb.slopes']
+You should probably TRAIN this model on a down-stream task to be able to use it for predictions and inference.
+Starting from v4.46, the `logits` model output will have the same type as the model (except at train time, where it will always be FP32)
+    10/80 examples: qasper (3.25s)
+    20/80 examples: hotpotqa (11.83s)
+    30/80 examples: musique (4.70s)
+    40/80 examples: qmsum (2.72s)
+    50/80 examples: trec (0.51s)
+    60/80 examples: samsum (1.31s)
+    70/80 examples: passage_retrieval_en (3.66s)
+    80/80 examples: repobench-p (4.96s)
+[14/21] DONE PPL=12.198 load=10.8s eval=497.4s
+[15/21] START adpretko/celerity-271m-16k-ad0p8-ild
+Downloading shards:   0%|          | 0/1 [00:00<?, ?it/s]Downloading shards: 100%|██████████| 1/1 [00:08<00:00,  8.41s/it]Downloading shards: 100%|██████████| 1/1 [00:08<00:00,  8.41s/it]
+Some weights of CelerityForCausalLM were not initialized from the model checkpoint at adpretko/celerity-271m-16k-ad0p8-ild and are newly initialized: ['model.alibi_emb.slopes']
+You should probably TRAIN this model on a down-stream task to be able to use it for predictions and inference.
+Starting from v4.46, the `logits` model output will have the same type as the model (except at train time, where it will always be FP32)
+    10/80 examples: qasper (1.86s)
+    20/80 examples: hotpotqa (2.51s)
+    30/80 examples: musique (2.38s)
+    40/80 examples: qmsum (1.55s)
+    50/80 examples: trec (0.31s)
+    60/80 examples: samsum (0.76s)
+    70/80 examples: passage_retrieval_en (2.09s)
+    80/80 examples: repobench-p (2.55s)
+[15/21] DONE PPL=16 load=9.7s eval=181.3s
+[16/21] START adpretko/celerity-271m-16k-ad0p4-ild
+Downloading shards:   0%|          | 0/1 [00:00<?, ?it/s]Downloading shards: 100%|██████████| 1/1 [00:08<00:00,  8.11s/it]Downloading shards: 100%|██████████| 1/1 [00:08<00:00,  8.11s/it]
+Some weights of CelerityForCausalLM were not initialized from the model checkpoint at adpretko/celerity-271m-16k-ad0p4-ild and are newly initialized: ['model.alibi_emb.slopes']
+You should probably TRAIN this model on a down-stream task to be able to use it for predictions and inference.
+Starting from v4.46, the `logits` model output will have the same type as the model (except at train time, where it will always be FP32)
+    10/80 examples: qasper (1.86s)
+    20/80 examples: hotpotqa (2.52s)
+    30/80 examples: musique (2.38s)
+    40/80 examples: qmsum (1.55s)
+    50/80 examples: trec (0.31s)
+    60/80 examples: samsum (0.76s)
+    70/80 examples: passage_retrieval_en (2.09s)
+    80/80 examples: repobench-p (2.55s)
+[16/21] DONE PPL=15.843 load=9.3s eval=181.4s
+[17/21] START adpretko/celerity-271m-16k-ad0p2-ild
+Downloading shards:   0%|          | 0/1 [00:00<?, ?it/s]Downloading shards: 100%|██████████| 1/1 [00:06<00:00,  6.74s/it]Downloading shards: 100%|██████████| 1/1 [00:06<00:00,  6.74s/it]
+Some weights of CelerityForCausalLM were not initialized from the model checkpoint at adpretko/celerity-271m-16k-ad0p2-ild and are newly initialized: ['model.alibi_emb.slopes']
+You should probably TRAIN this model on a down-stream task to be able to use it for predictions and inference.
+Starting from v4.46, the `logits` model output will have the same type as the model (except at train time, where it will always be FP32)
+    10/80 examples: qasper (1.87s)
+    20/80 examples: hotpotqa (2.52s)
+    30/80 examples: musique (2.39s)
+    40/80 examples: qmsum (1.56s)
+    50/80 examples: trec (0.31s)
+    60/80 examples: samsum (0.76s)
+    70/80 examples: passage_retrieval_en (2.09s)
+    80/80 examples: repobench-p (2.55s)
+[17/21] DONE PPL=15.163 load=7.9s eval=181.4s
+[18/21] START adpretko/celerity-271m-16k-ad0p4
+Downloading shards:   0%|          | 0/1 [00:00<?, ?it/s]Downloading shards: 100%|██████████| 1/1 [00:03<00:00,  3.68s/it]Downloading shards: 100%|██████████| 1/1 [00:03<00:00,  3.68s/it]
+Some weights of CelerityForCausalLM were not initialized from the model checkpoint at adpretko/celerity-271m-16k-ad0p4 and are newly initialized: ['model.alibi_emb.slopes']
+You should probably TRAIN this model on a down-stream task to be able to use it for predictions and inference.
+Starting from v4.46, the `logits` model output will have the same type as the model (except at train time, where it will always be FP32)
+    10/80 examples: qasper (1.86s)
+    20/80 examples: hotpotqa (2.51s)
+    30/80 examples: musique (2.39s)
+    40/80 examples: qmsum (1.55s)
+    50/80 examples: trec (0.31s)
+    60/80 examples: samsum (0.76s)
+    70/80 examples: passage_retrieval_en (2.09s)
+    80/80 examples: repobench-p (2.55s)
+[18/21] DONE PPL=14.898 load=4.9s eval=181.2s
+[19/21] START adpretko/celerity-271m-16k-ad0p2
+Downloading shards:   0%|          | 0/1 [00:00<?, ?it/s]Downloading shards: 100%|██████████| 1/1 [00:06<00:00,  6.62s/it]Downloading shards: 100%|██████████| 1/1 [00:06<00:00,  6.62s/it]
+Some weights of CelerityForCausalLM were not initialized from the model checkpoint at adpretko/celerity-271m-16k-ad0p2 and are newly initialized: ['model.alibi_emb.slopes']
+You should probably TRAIN this model on a down-stream task to be able to use it for predictions and inference.
+Starting from v4.46, the `logits` model output will have the same type as the model (except at train time, where it will always be FP32)
+    10/80 examples: qasper (1.87s)
+    20/80 examples: hotpotqa (2.52s)
+    30/80 examples: musique (2.38s)
+    40/80 examples: qmsum (1.55s)
+    50/80 examples: trec (0.31s)
+    60/80 examples: samsum (0.76s)
+    70/80 examples: passage_retrieval_en (2.09s)
+    80/80 examples: repobench-p (2.55s)
+[19/21] DONE PPL=15.01 load=7.8s eval=181.2s
+[20/21] START adpretko/celerity-271m-16k-ad0p1
+Downloading shards:   0%|          | 0/1 [00:00<?, ?it/s]Downloading shards: 100%|██████████| 1/1 [00:05<00:00,  5.63s/it]Downloading shards: 100%|██████████| 1/1 [00:05<00:00,  5.63s/it]
+Some weights of CelerityForCausalLM were not initialized from the model checkpoint at adpretko/celerity-271m-16k-ad0p1 and are newly initialized: ['model.alibi_emb.slopes']
+You should probably TRAIN this model on a down-stream task to be able to use it for predictions and inference.
+Starting from v4.46, the `logits` model output will have the same type as the model (except at train time, where it will always be FP32)
+    10/80 examples: qasper (1.87s)
+    20/80 examples: hotpotqa (2.51s)
+    30/80 examples: musique (2.38s)
+    40/80 examples: qmsum (1.55s)
+    50/80 examples: trec (0.31s)
+    60/80 examples: samsum (0.76s)
+    70/80 examples: passage_retrieval_en (2.09s)
+    80/80 examples: repobench-p (2.55s)
+[20/21] DONE PPL=15.084 load=6.8s eval=181.2s
+[21/21] START adpretko/celerity-271m-16k-ad0p0
+Downloading shards:   0%|          | 0/1 [00:00<?, ?it/s]Downloading shards: 100%|██████████| 1/1 [00:04<00:00,  4.90s/it]Downloading shards: 100%|██████████| 1/1 [00:04<00:00,  4.90s/it]
+Some weights of CelerityForCausalLM were not initialized from the model checkpoint at adpretko/celerity-271m-16k-ad0p0 and are newly initialized: ['model.alibi_emb.slopes']
+You should probably TRAIN this model on a down-stream task to be able to use it for predictions and inference.
+Starting from v4.46, the `logits` model output will have the same type as the model (except at train time, where it will always be FP32)
+    10/80 examples: qasper (1.87s)
+    20/80 examples: hotpotqa (2.52s)
+    30/80 examples: musique (2.38s)
+    40/80 examples: qmsum (1.55s)
+    50/80 examples: trec (0.31s)
+    60/80 examples: samsum (0.76s)
+    70/80 examples: passage_retrieval_en (2.09s)
+    80/80 examples: repobench-p (2.55s)
+[21/21] DONE PPL=15.335 load=6.1s eval=181.3s
+Results: results/celerity_all_16k_bestref_bf16/summary.csv; failures in this invocation: 0
+PASS: 21 models x 80 examples, 16 tasks/model, context=16384
+PASS: exact frozen checkpoints, dataset revision and sample identities
+PASS: all selected reference indices, candidate traces and summary aggregates
+Distinct reference counts per example: {1: 1491, 2: 105, 3: 42, 4: 21, 24: 21}

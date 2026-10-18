@@ -1,0 +1,248 @@
+{
+  "version": 2,
+  "created_utc": "2026-10-14T15:10:52.852248+00:00",
+  "settings": {
+    "owner": "adpretko",
+    "model_prefix": "adpretko/celerity-",
+    "model_order": "recent",
+    "model_offset": 0,
+    "limit_models": 10,
+    "tasks": [
+      "narrativeqa",
+      "qasper",
+      "multifieldqa_en",
+      "hotpotqa",
+      "2wikimqa",
+      "musique",
+      "gov_report",
+      "qmsum",
+      "multi_news",
+      "trec",
+      "triviaqa",
+      "samsum",
+      "passage_count",
+      "passage_retrieval_en",
+      "lcc",
+      "repobench-p"
+    ],
+    "examples_per_task": 5,
+    "seed": 42,
+    "sampling": "random",
+    "context_mode": "common",
+    "common_context": 4096,
+    "answer_stride": 128,
+    "dtype": "float16",
+    "dataset": "THUDM/LongBench",
+    "reference_policy": "first",
+    "use_chat_template": false,
+    "scorer": "longbench_perplexity.answer_conditional_ppl",
+    "truncation_policy": "longbench_utils.middle_truncate_tokens"
+  },
+  "models": [
+    {
+      "model": "adpretko/celerity-1810m-8k-ad0p0",
+      "revision": "151b7541424ce07e98361c44e1fb91dcd6592109",
+      "trained_context_tokens": 8192,
+      "model_type": "celerity",
+      "vocab_size": 128256
+    },
+    {
+      "model": "adpretko/celerity-906m-8k-ld0p8-ild",
+      "revision": "1126d8b0496724c755f1c960db5dd5283878d340",
+      "trained_context_tokens": 8192,
+      "model_type": "celerity",
+      "vocab_size": 128256
+    },
+    {
+      "model": "adpretko/celerity-906m-8k-ld0p4-ild",
+      "revision": "c3645728904f75310c4885f30ba4cde12be22316",
+      "trained_context_tokens": 8192,
+      "model_type": "celerity",
+      "vocab_size": 128256
+    },
+    {
+      "model": "adpretko/celerity-906m-8k-ld0p2-ild",
+      "revision": "ffa259c9fcb6a24942dd20be04016793bcdf03da",
+      "trained_context_tokens": 8192,
+      "model_type": "celerity",
+      "vocab_size": 128256
+    },
+    {
+      "model": "adpretko/celerity-906m-8k-ld0p4",
+      "revision": "0242fc88cf1e8e44a42dafc617b62d8e10242ed1",
+      "trained_context_tokens": 8192,
+      "model_type": "celerity",
+      "vocab_size": 128256
+    },
+    {
+      "model": "adpretko/celerity-906m-8k-ld0p2",
+      "revision": "2f871948ae68994c67bd300e35cdb1af94f40240",
+      "trained_context_tokens": 8192,
+      "model_type": "celerity",
+      "vocab_size": 128256
+    },
+    {
+      "model": "adpretko/celerity-906m-8k-ld0p1",
+      "revision": "04ca7feb94d3c6160b9b8db3eeb8c74537c25e12",
+      "trained_context_tokens": 8192,
+      "model_type": "celerity",
+      "vocab_size": 128256
+    },
+    {
+      "model": "adpretko/celerity-906m-8k-rd0p8-ild",
+      "revision": "1310f7931db0d751a72db134248404566c523b8a",
+      "trained_context_tokens": 8192,
+      "model_type": "celerity",
+      "vocab_size": 128256
+    },
+    {
+      "model": "adpretko/celerity-906m-8k-rd0p4-ild",
+      "revision": "68722ddadcba4f0de047c69b19118fac592daa41",
+      "trained_context_tokens": 8192,
+      "model_type": "celerity",
+      "vocab_size": 128256
+    },
+    {
+      "model": "adpretko/celerity-906m-8k-rd0p2-ild",
+      "revision": "9a757f5e68ea2de4cdb6490cb09469dd88b53dea",
+      "trained_context_tokens": 8192,
+      "model_type": "celerity",
+      "vocab_size": 128256
+    }
+  ],
+  "total_celerity_repositories": 189,
+  "excluded_models": [],
+  "longbench_revision": "5e628be450b7e67fb7ae6e201bd6d8f7056f7672",
+  "sample_indices": {
+    "narrativeqa": [
+      6,
+      78,
+      89,
+      109,
+      127
+    ],
+    "qasper": [
+      46,
+      135,
+      171,
+      191,
+      196
+    ],
+    "multifieldqa_en": [
+      9,
+      59,
+      93,
+      104,
+      122
+    ],
+    "hotpotqa": [
+      60,
+      94,
+      123,
+      153,
+      156
+    ],
+    "2wikimqa": [
+      33,
+      51,
+      82,
+      148,
+      166
+    ],
+    "musique": [
+      40,
+      151,
+      163,
+      189,
+      194
+    ],
+    "gov_report": [
+      15,
+      141,
+      178,
+      179,
+      186
+    ],
+    "qmsum": [
+      18,
+      20,
+      44,
+      76,
+      137
+    ],
+    "multi_news": [
+      15,
+      42,
+      59,
+      128,
+      178
+    ],
+    "trec": [
+      9,
+      19,
+      74,
+      187,
+      195
+    ],
+    "triviaqa": [
+      65,
+      66,
+      108,
+      126,
+      127
+    ],
+    "samsum": [
+      127,
+      148,
+      150,
+      179,
+      187
+    ],
+    "passage_count": [
+      33,
+      67,
+      85,
+      103,
+      140
+    ],
+    "passage_retrieval_en": [
+      46,
+      54,
+      64,
+      138,
+      182
+    ],
+    "lcc": [
+      13,
+      96,
+      199,
+      249,
+      256
+    ],
+    "repobench-p": [
+      42,
+      119,
+      187,
+      301,
+      302
+    ]
+  },
+  "sample_id_digest": {
+    "narrativeqa": "43babbfd4314fd8b475fe8905f498cfd41b98022dfdb61f9d0a7ba45e4e22cc0",
+    "qasper": "5611d0a2bb9bd230c434e59db06b5e686d79eb124b84753d6ca16b2e58d99f09",
+    "multifieldqa_en": "23e68323f866fb0fce6396e8499bae9e9cc659cce5bf2e0882991a46cf547389",
+    "hotpotqa": "a4aa409197bdbff3a74667d3496d861b4bb463c987025bcd340778e9726ca96d",
+    "2wikimqa": "1859e72250498c27ccedc9a7dfb32592ac7f18385ee038489629f29dbb882727",
+    "musique": "209c6ff4e0ee6d4b5733b9ba0160a64141554066dc694fadd802cc4f965f0ed0",
+    "gov_report": "320a664d702c16dd052ceeb5636142cf4ad5e7f4a77ec0f018368dcf3bb516bb",
+    "qmsum": "45940d54da08e25e17b3d9d0fe502dfa421fe0d769e43d58aa4117264c732137",
+    "multi_news": "4665da675fd5f0853338ce9333b558f33ff0b72adfc0079ddc7497ea583c3879",
+    "trec": "764bdc6d4674757bba351e0beae7c8d55d7caa0e2ee6f30e16022965cbe475c2",
+    "triviaqa": "60283129ad82a488d984fd35a9062e431f205b998eab5e28598cbd5cd6cc8384",
+    "samsum": "e6f80addc398a4938486c33e127abe6fe33e76eb820721b7419d7019da67cfcb",
+    "passage_count": "23494c0a2a87c00f0348fe3bdd9f3eb956e7e4c52eda2877669984eb975a501a",
+    "passage_retrieval_en": "bd25dc0b50b3d7b3acd5bdc468be2e63e8d082d1c63c5570ea6b5e28da17cd87",
+    "lcc": "0c023b414c32ca55d0191b1001da8ebd70c2467498761843392b08c993baff60",
+    "repobench-p": "de1bf4ae7c88e2debe846edaef79ff5ee39a25e0d85c5a3c970efee695263c87"
+  }
+}
